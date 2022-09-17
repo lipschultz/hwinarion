@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "hwinarion"
+version = "0.1.0"
+description = "Control your computer with a microphone and webcam"
+authors = ["Michael Lipschultz <michael.lipschultz@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+opencv-python = "^4.5.5"
+PyAutoGUI = "^0.9.53"
+vosk = "^0.3.43"
+SpeechRecognition = "^3.8.1"
+pydub = "^0.25.1"
+PyAudio = "^0.2.12"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
