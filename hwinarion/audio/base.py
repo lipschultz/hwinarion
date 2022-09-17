@@ -5,18 +5,21 @@ from pydub import AudioSegment
 from pydub.playback import play
 
 
+TimeType = Union[float, int]
+
+
 class BaseAudioSource:
     @property
     def frame_rate(self) -> int:
         raise NotImplementedError
 
-    def seconds_to_frames(self, seconds: Union[float, int]) -> int:
+    def seconds_to_frames(self, seconds: TimeType) -> int:
         return int(seconds * self.frame_rate)
 
     def read(self, n_frames: Optional[int]) -> 'AudioSample':
         raise NotImplementedError
 
-    def read_seconds(self, n_seconds: Union[int, float, None]) -> 'AudioSample':
+    def read_seconds(self, n_seconds: Optional[TimeType]) -> 'AudioSample':
         assert n_seconds is None or (isinstance(n_seconds, (int, float)) and n_seconds > 0), f'n_seconds must be None or a number greater than zero, got {n_seconds!r}'
 
         if n_seconds is None:
@@ -49,6 +52,13 @@ class AudioSample:
     @property
     def frame_width(self) -> int:
         return self.data.frame_width
+
+    @property
+    def rms(self) -> int:
+        """
+        A measure of the loudness or energy in the audio.
+        """
+        return self.data.rms
 
     def convert(self, frame_rate: Optional[int] = None, frame_width: Optional[int] = None, n_channels: Optional[int] = None) -> 'AudioSample':
         new_data = self.data

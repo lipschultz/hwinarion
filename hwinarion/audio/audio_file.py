@@ -3,7 +3,7 @@ from typing import Union, Optional
 
 from pydub import AudioSegment
 
-from hwinarion.audio.base_audio_source import BaseAudioSource, AudioSample
+from hwinarion.audio.base import BaseAudioSource, AudioSample
 
 
 class AudioFile(BaseAudioSource):

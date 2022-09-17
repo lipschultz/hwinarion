@@ -4,7 +4,7 @@ from typing import Optional, List
 import pyaudio
 from pydub import AudioSegment
 
-from hwinarion.audio.base_audio_source import BaseAudioSource, AudioSample
+from hwinarion.audio.base import BaseAudioSource, AudioSample
 
 
 class Microphone(BaseAudioSource):
