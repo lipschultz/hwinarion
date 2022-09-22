@@ -23,11 +23,15 @@ class VoskSpeechToText(BaseSpeechToText):
         self._recognizer = KaldiRecognizer(self._model, self.frame_rate)
 
     @property
-    def frame_width(self) -> int:
+    def sample_width(self) -> int:
         return self.bit_depth // 8
 
     def transcribe_audio(self, audio_data) -> str:
         self._recognizer.AcceptWaveform(
-            audio_data.convert(frame_width=self.frame_width, frame_rate=self.frame_rate, n_channels=self.n_channels).raw_data
+            audio_data.convert(
+                sample_width=self.sample_width,
+                frame_rate=self.frame_rate,
+                n_channels=self.n_channels
+            ).to_bytes()
         )
         return json.loads(self._recognizer.FinalResult())['text']
