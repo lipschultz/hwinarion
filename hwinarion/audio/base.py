@@ -142,8 +142,16 @@ class AudioSample:
 
         return AudioSample(new_data)
 
+    def invert_phase(self) -> 'AudioSample':
+        return AudioSample(self.data.invert_phase())
+
     def append(self, audio_sample: 'AudioSample', crossfade: TimeType = 0) -> 'AudioSample':
         return AudioSample(self.data.append(audio_sample.data, crossfade=crossfade))
+
+    def overlay(self, audio_sample: 'AudioSample', offset: TimeType = 0) -> 'AudioSample':
+        return AudioSample(
+            self.data.overlay(audio_sample.data, position=int(offset * 1000))  # pydub works in ms
+        )
 
     @classmethod
     def from_iterable(cls, audio_samples: Iterable['AudioSample'], crossfade: TimeType = 0) -> 'AudioSample':
@@ -213,17 +221,18 @@ class AudioSample:
         start_of_long_durations = indices_where_sign_changed[long_durations]
         end_of_long_durations = indices_where_sign_changed[1:][long_durations[:-1]]
 
-        final_audio_segment = self.data
+        final_audio_segment = self
         for start, end in zip(start_of_long_durations, end_of_long_durations):
-            inverted_region = self.slice_frame(start, end).data.invert_phase()
+            inverted_region = self.slice_frame(start, end).invert_phase()
             final_audio_segment = final_audio_segment.overlay(
                 inverted_region,
-                position=self.frame_to_seconds(start) * 1000 # pydub works in ms
+                offset=start
             )
 
-        # TODO: There may still be short spikes to eliminate, but I'm not sure how to do that without going into numpy and converting back to AudioSegment doesn't seem to work properly
+        # TODO: There may still be short spikes to eliminate, but I'm not sure how to do that without going into numpy
+        #  and converting back to AudioSegment doesn't seem to work properly
 
-        return AudioSample(final_audio_segment)
+        return final_audio_segment
 
     def plot_amplitude(self, title=None, *, axis=None, highlight_regions: Iterable[Tuple[TimeType, TimeType]] = ()):
         samples = self.to_numpy()
