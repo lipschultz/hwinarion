@@ -1,15 +1,11 @@
-from array import array
 import io
-from dataclasses import dataclass
-from enum import Enum
-from typing import Union, Optional, Iterable, List, Tuple
+from array import array
+from typing import Union, Optional, Iterable, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.lib.stride_tricks import sliding_window_view
 from pydub import AudioSegment
 from pydub.playback import play
-
 
 TimeType = Union[float, int]
 
@@ -128,6 +124,13 @@ class AudioSample:
         """
         return self.data.rms
 
+    @property
+    def max_possible_amplitude(self) -> float:
+        """
+        The maximum possible amplitude (based on the bit depth of each sample).
+        """
+        return (2 ** self.bit_depth) / 2  # The "/2" is because half of the size is for above 0, the other for below
+
     def convert(self, frame_rate: Optional[int] = None, sample_width: Optional[int] = None, n_channels: Optional[int] = None) -> 'AudioSample':
         new_data = self.data
 
@@ -144,6 +147,9 @@ class AudioSample:
 
     def invert_phase(self) -> 'AudioSample':
         return AudioSample(self.data.invert_phase())
+
+    def normalize(self) -> 'AudioSample':
+        return AudioSample(self.data.normalize(0))
 
     def append(self, audio_sample: 'AudioSample', crossfade: TimeType = 0) -> 'AudioSample':
         return AudioSample(self.data.append(audio_sample.data, crossfade=crossfade))
@@ -234,9 +240,21 @@ class AudioSample:
 
         return final_audio_segment
 
-    def plot_amplitude(self, title=None, *, axis=None, highlight_regions: Iterable[Tuple[TimeType, TimeType]] = ()):
-        samples = self.to_numpy()
+    def plot_amplitude(
+            self,
+            *,
+            title=None,
+            axis=None,
+            highlight_regions: Iterable[Tuple[TimeType, TimeType]] = (),
+            normalize_amplitude: bool = False,
+    ) -> None:
         time = np.linspace(0, self.n_seconds, num=len(self))
+
+        if normalize_amplitude:
+            normed_sample = self.normalize()
+            samples = normed_sample.to_numpy() / normed_sample.max_possible_amplitude
+        else:
+            samples = self.to_numpy()
 
         show_plot = axis is None
         if axis is None:
@@ -279,97 +297,3 @@ class AudioSample:
         self.plot_spectrogram(axis=ax_spectrogram)
 
         plt.show()
-
-
-FrameStateEnum = Enum('FrameStateEnum', ('LISTEN', 'PAUSE', 'STOP'))
-
-
-@dataclass
-class AnnotatedFrame:
-    frame: AudioSample
-    state: FrameStateEnum
-
-
-class BaseListener:
-    def __init__(self, source: BaseAudioSource):
-        self.source = source
-
-    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
-        raise NotImplementedError
-
-    def _pre_process_individual_audio_sample(self, audio: AudioSample) -> AudioSample:
-        return audio
-
-    def _filter_audio_samples(self, all_frames: List[AnnotatedFrame]) -> List[AnnotatedFrame]:
-        previous_state = None
-        saved_frames = []
-        for frame in all_frames:
-            if frame.state == FrameStateEnum.LISTEN or previous_state == FrameStateEnum.LISTEN:
-                saved_frames.append(frame)
-            previous_state = frame.state
-        return saved_frames
-
-    def _join_audio_samples(self, all_frames: List[AnnotatedFrame]) -> AudioSample:
-        return AudioSample.from_iterable(frame.frame for frame in all_frames)
-
-    def _post_process_final_audio_sample(self, audio: AudioSample) -> AudioSample:
-        return audio
-
-    def listen_frames(self, chunk_size: int = 2**14) -> List[AnnotatedFrame]:
-        all_frames = []
-
-        frame = self.source.read(chunk_size)
-        frame = self._pre_process_individual_audio_sample(frame)
-        frame_state = self._determine_frame_state(frame, all_frames)
-
-        while frame_state != FrameStateEnum.STOP:
-            all_frames.append(AnnotatedFrame(frame, frame_state))
-            frame = self.source.read(chunk_size)
-            frame = self._pre_process_individual_audio_sample(frame)
-            frame_state = self._determine_frame_state(frame, all_frames)
-
-        all_frames.append(AnnotatedFrame(frame, frame_state))
-        return all_frames
-
-    def listen(self, chunk_size: int = 2**14) -> AudioSample:
-        """
-        If the end of the source is reached, then listening will end regardless of what ``_determine_frame_state`` will return.
-        """
-        all_frames = self.listen_frames(chunk_size)
-        all_frames = self._filter_audio_samples(all_frames)
-        audio_sample = self._join_audio_samples(all_frames)
-        audio_sample = self._post_process_final_audio_sample(audio_sample)
-
-        return audio_sample
-
-
-class TimeBasedListener(BaseListener):
-    def __init__(self, source: BaseAudioSource, total_duration: TimeType):
-        super().__init__(source)
-        self.total_duration = total_duration
-
-    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
-        duration = sum(frame.frame.n_seconds for frame in all_frames) + latest_frame.n_seconds
-        if duration < self.total_duration and len(latest_frame) > 0:
-            return FrameStateEnum.LISTEN
-        else:
-            return FrameStateEnum.STOP
-
-
-class SilenceBasedListener(BaseListener):
-    def __init__(self, source: BaseAudioSource, silence_threshold_rms: int = 500):
-        super().__init__(source)
-        self.silence_threshold_rms = silence_threshold_rms
-
-    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
-        if latest_frame.rms > self.silence_threshold_rms:
-            print(len(all_frames), latest_frame.rms, 'LISTEN')
-            return FrameStateEnum.LISTEN
-        else:
-            if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
-                # Haven't started listening yet
-                print(len(all_frames), latest_frame.rms,'PAUSE')
-                return FrameStateEnum.PAUSE
-            else:
-                print(len(all_frames), latest_frame.rms,'STOP')
-                return FrameStateEnum.STOP
