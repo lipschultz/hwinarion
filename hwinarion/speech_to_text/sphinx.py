@@ -6,13 +6,18 @@ from pocketsphinx import pocketsphinx
 
 from hwinarion.audio.base import AudioSample
 from hwinarion.speech_to_text import BaseSpeechToText
-from hwinarion.speech_to_text.base import NoTranscriptionError, DetailedTranscripts, DetailedTranscript
+from hwinarion.speech_to_text.base import NoTranscriptionError, DetailedTranscripts, DetailedTranscript, \
+    TranscriptSegment
 
 
 class SphinxSpeechToText(BaseSpeechToText):
     FRAME_RATE = 16_000
     BIT_DEPTH = 16
     N_CHANNELS = 1
+
+    START_TOKEN = '<s>'
+    END_TOKEN = '</s>'
+    SILENCE_TOKEN = '<sil>'
 
     def __init__(self, model_path: Union[str, Path], frame_rate: int = FRAME_RATE, bit_depth: int = BIT_DEPTH, n_channels: int = N_CHANNELS):
         super().__init__()
@@ -36,7 +41,7 @@ class SphinxSpeechToText(BaseSpeechToText):
     def sample_width(self) -> int:
         return self.bit_depth // 8
 
-    def transcribe_audio_detailed(self, audio_data: AudioSample, search=False, full_utt=True) -> DetailedTranscripts:
+    def transcribe_audio_detailed(self, audio_data: AudioSample, segment_timestamps: bool = True) -> DetailedTranscripts:
         self._recognizer.start_utt()
         self._recognizer.process_raw(
             audio_data.convert(
@@ -44,8 +49,8 @@ class SphinxSpeechToText(BaseSpeechToText):
                 frame_rate=self.frame_rate,
                 n_channels=self.n_channels
             ).to_bytes(),
-            search,  # no search
-            full_utt  # full utterance
+            False,  # no search
+            True  # full utterance
         )
         self._recognizer.end_utt()
 
@@ -53,12 +58,22 @@ class SphinxSpeechToText(BaseSpeechToText):
         if hypothesis is None:
             raise NoTranscriptionError(audio_file=audio_data)
 
+        # Sphinx docs imply fps is 100, but experimentation showed that wasn't the case
+        sphinx_fps = list(self._recognizer.seg())[-1].end_frame / audio_data.n_seconds if segment_timestamps else None
+
         return DetailedTranscripts(
             [
                 DetailedTranscript(
                     hypothesis.hypstr,
                     hypothesis.prob,
-                    None
+                    [
+                        TranscriptSegment(
+                            segment.word,
+                            segment.start_frame / sphinx_fps,
+                            segment.end_frame / sphinx_fps,
+                        )
+                        for segment in self._recognizer.seg()
+                    ] if segment_timestamps else None
                 )
             ]
         )
