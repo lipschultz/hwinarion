@@ -15,6 +15,10 @@ class TranscriptSegment:
     start_time: float
     end_time: float
 
+    @property
+    def duration(self) -> float:
+        return self.end_time - self.start_time
+
 
 @dataclass(frozen=True)
 class DetailedTranscript:
