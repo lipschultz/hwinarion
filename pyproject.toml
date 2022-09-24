@@ -15,7 +15,7 @@ PyAudio = "^0.2.12"
 matplotlib = "^3.6.0"
 pocketsphinx = "^0.1.15"
 numpy = "^1.23.3"
-coqui-stt-model-manager = "^0.0.21"
+stt = "^1.4.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.0"

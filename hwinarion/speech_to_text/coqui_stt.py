@@ -53,15 +53,16 @@ class CoquiSpeechToText(BaseSpeechToText):
             n_transcriptions
         )
 
-        return DetailedTranscripts(
+        results = DetailedTranscripts(
             [
-                self._coqui_token_metadata_to_detailed_transcript(transcript)
+                self._coqui_token_metadata_to_detailed_transcript(transcript, segment_timestamps=segment_timestamps)
                 for transcript in result.transcripts
             ]
         )
+        return results
 
     @staticmethod
-    def _coqui_token_metadata_to_detailed_transcript(transcript: CandidateTranscript) -> DetailedTranscript:
+    def _coqui_token_metadata_to_detailed_transcript(transcript: CandidateTranscript, segment_timestamps: bool) -> DetailedTranscript:
         transcript_segments = []
         word = []
         start_time = None
@@ -83,5 +84,5 @@ class CoquiSpeechToText(BaseSpeechToText):
         return DetailedTranscript(
             ' '.join(segment.text for segment in transcript_segments),
             transcript.confidence,
-            transcript_segments
+            transcript_segments if segment_timestamps else None
         )
