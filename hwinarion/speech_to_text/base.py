@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Iterable, Optional, List
+from dataclasses import dataclass
+from typing import Optional, List
 
 from hwinarion.audio.base import AudioSample
 
