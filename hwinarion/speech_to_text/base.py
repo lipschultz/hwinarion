@@ -40,8 +40,8 @@ class BaseSpeechToText:
     def __init__(self):
         pass
 
-    def transcribe_audio_detailed(self, audio: AudioSample, *args, **kwargs) -> DetailedTranscripts:
+    def transcribe_audio_detailed(self, audio: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True) -> DetailedTranscripts:
         raise NotImplementedError
 
     def transcribe_audio(self, audio: AudioSample) -> str:
-        return self.transcribe_audio_detailed(audio).best_transcript.text
+        return self.transcribe_audio_detailed(audio, n_transcriptions=1).best_transcript.text

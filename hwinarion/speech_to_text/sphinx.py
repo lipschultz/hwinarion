@@ -41,7 +41,9 @@ class SphinxSpeechToText(BaseSpeechToText):
     def sample_width(self) -> int:
         return self.bit_depth // 8
 
-    def transcribe_audio_detailed(self, audio_data: AudioSample, segment_timestamps: bool = True) -> DetailedTranscripts:
+    def transcribe_audio_detailed(self, audio_data: AudioSample, *, n_transcriptions: int = 1, segment_timestamps: bool = True) -> DetailedTranscripts:
+        assert n_transcriptions == 1
+
         self._recognizer.start_utt()
         self._recognizer.process_raw(
             audio_data.convert(

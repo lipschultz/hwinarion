@@ -29,7 +29,7 @@ class VoskSpeechToText(BaseSpeechToText):
     def sample_width(self) -> int:
         return self.bit_depth // 8
 
-    def transcribe_audio_detailed(self, audio_data: AudioSample, n_transcriptions: int = 3, segment_timestamps: bool = True) -> DetailedTranscripts:
+    def transcribe_audio_detailed(self, audio_data: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True) -> DetailedTranscripts:
         """
         Transcribe an audio sample, returning a transcript with extra details about the transcription, such as
         timestamps and confidence.
