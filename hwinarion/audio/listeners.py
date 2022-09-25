@@ -6,7 +6,11 @@ from typing import List, Callable, Optional
 
 from hwinarion.audio.base import AudioSample, BaseAudioSource, TimeType
 
-FrameStateEnum = Enum('FrameStateEnum', ('LISTEN', 'PAUSE', 'STOP'))
+
+class FrameStateEnum(Enum):
+    LISTEN = 'LISTEN'
+    PAUSE = 'PAUSE'
+    STOP = 'STOP'
 
 
 @dataclass
