@@ -2,9 +2,9 @@ import threading
 from dataclasses import dataclass
 from enum import Enum
 from queue import SimpleQueue
-from typing import Callable, List, Optional
+from typing import List, Optional
 
-from hwinarion.audio.base import AudioSample, BaseAudioSource, TimeType
+from hwinarion.audio.base import AudioSample, BaseAudioSource
 
 
 class FrameStateEnum(Enum):
