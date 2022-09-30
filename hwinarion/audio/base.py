@@ -213,7 +213,7 @@ class AudioSample:
         )
 
     @classmethod
-    def from_iterable(cls, audio_samples: Iterable['AudioSample'], crossfade: TimeType = 0) -> 'AudioSample':
+    def from_iterable(cls, audio_samples: Iterable['AudioSample'], crossfade: TimeType = 0) -> Optional['AudioSample']:
         """
         Create an audio sample by concatenating ``audio_samples`` together.
 
