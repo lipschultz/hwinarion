@@ -67,10 +67,13 @@ class CoquiSpeechToText(BaseSpeechToText):
         word = []
         start_time = None
         for i, token in enumerate(transcript.tokens):
-            if len(word) == 0:
+            if not token.text.isspace():
                 word.append(token.text)
+
+            if start_time is None:
                 start_time = token.start_time
-            elif token == ' ' or i == len(transcript.tokens) - 1:
+
+            if token.text.isspace() or i == len(transcript.tokens) - 1:
                 transcript_segments.append(TranscriptSegment(
                     ''.join(word),
                     start_time,
@@ -78,8 +81,6 @@ class CoquiSpeechToText(BaseSpeechToText):
                 ))
                 word = []
                 start_time = None
-            else:
-                word.append(token.text)
 
         return DetailedTranscript(
             ' '.join(segment.text for segment in transcript_segments),
