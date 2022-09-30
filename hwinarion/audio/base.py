@@ -231,15 +231,17 @@ class AudioSample:
         return AudioSample(AudioSegment.silent(duration=int(n_seconds * 1000), frame_rate=frame_rate))
 
     @classmethod
-    def from_numpy_and_sample(cls, data: np.ndarray, source_sample: 'AudioSample') -> 'AudioSample':
-        raise NotImplementedError('The implementation loses half of the audio')
-        data_array = array(source_sample.data.array_type, data)
-        return cls.from_array_and_sample(data_array, source_sample)
+    def from_numpy(cls, data: np.ndarray, frame_rate: int) -> 'AudioSample':
+        return AudioSample(AudioSegment(
+            data.tobytes(),
+            frame_rate=frame_rate,
+            sample_width=data.dtype.itemsize,
+            channels=1 if len(data.shape) == 1 else data.shape[1]
+        ))
 
     @classmethod
-    def from_array_and_sample(cls, data: array, source_sample: 'AudioSample') -> 'AudioSample':
-        raise NotImplementedError('The implementation loses half of the audio')
-        return source_sample.data._spawn(data)
+    def from_numpy_and_sample(cls, data: np.ndarray, source_sample: 'AudioSample') -> 'AudioSample':
+        return cls.from_numpy(data, source_sample.frame_rate)
 
     def play(self, delta_gain_dB: float = None) -> None:
         """
