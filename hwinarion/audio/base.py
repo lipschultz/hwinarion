@@ -4,6 +4,7 @@ from typing import Union, Optional, Iterable, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 from pydub import AudioSegment
 from pydub.playback import play
 
@@ -263,7 +264,7 @@ class AudioSample:
             return AudioSample(
                 self.data.remove_dc_offset()
             )
-        '''
+
         # This should work, but I lose half the audio when converting the numpy array back into an AudioSegment
         window_size = 15
 
@@ -276,38 +277,6 @@ class AudioSample:
 
         adjusted = samples - frame_averages
         return AudioSample.from_numpy_and_sample(adjusted, self)
-        '''
-
-        samples = self.to_numpy()
-
-        long_duration_threshold = 2000
-
-        is_negative = samples < 0
-        sign_change = np.concatenate((
-            [is_negative[0]],
-            is_negative[:-1] != is_negative[1:],
-            [True]
-        ))
-        indices_where_sign_changed = np.where(sign_change)[0]
-        duration_of_groups = np.diff(indices_where_sign_changed)
-
-        is_long_duration = duration_of_groups > long_duration_threshold
-        long_durations = np.concatenate((is_long_duration, [False]))
-        start_of_long_durations = indices_where_sign_changed[long_durations]
-        end_of_long_durations = indices_where_sign_changed[1:][long_durations[:-1]]
-
-        final_audio_segment = self
-        for start, end in zip(start_of_long_durations, end_of_long_durations):
-            inverted_region = self.slice_frame(start, end).invert_phase()
-            final_audio_segment = final_audio_segment.overlay(
-                inverted_region,
-                offset=start
-            )
-
-        # TODO: There may still be short spikes to eliminate, but I'm not sure how to do that without going into numpy
-        #  and converting back to AudioSegment doesn't seem to work properly
-
-        return final_audio_segment
 
     def plot_amplitude(
             self,
