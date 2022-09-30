@@ -31,6 +31,9 @@ class DetailedTranscript:
 class DetailedTranscripts:
     transcripts: List[DetailedTranscript]
 
+    def __post_init__(self):
+        self.transcripts.sort(key=lambda detailed_transcript: detailed_transcript.confidence, reverse=True)
+
     @property
     def best_transcript(self) -> DetailedTranscript:
         return self.transcripts[0]

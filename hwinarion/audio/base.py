@@ -263,6 +263,10 @@ class AudioSample:
         return final_sample
 
     @classmethod
+    def from_silence(cls, n_seconds: TimeType, frame_rate: int) -> 'AudioSample':
+        return AudioSample(AudioSegment.silent(duration=int(n_seconds * 1000), frame_rate=frame_rate))
+
+    @classmethod
     def from_numpy_and_sample(cls, data: np.ndarray, source_sample: 'AudioSample') -> 'AudioSample':
         raise NotImplementedError('The implementation loses half of the audio')
         data_array = array(source_sample.data.array_type, data)
