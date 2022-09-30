@@ -18,3 +18,6 @@ Follow the instructions for [installing Pydub dependencies](https://github.com/j
 
 To install for Pocketsphinx, you will need to follow their [installation instructions](https://github.com/bambocher/pocketsphinx-python#installation) for installing the non-Python dependencies.
 
+### Installing HwinArion
+
+Once you have installed the non-Python dependencies, install HwinArion with `poetry install`.
