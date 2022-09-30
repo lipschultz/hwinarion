@@ -10,42 +10,6 @@ from pydub.playback import play
 TimeType = Union[float, int]
 
 
-class BaseAudioSource:
-    @property
-    def frame_rate(self) -> int:
-        raise NotImplementedError
-
-    def seconds_to_frame(self, seconds: TimeType) -> int:
-        """
-        Convert time (in seconds) into number of frames.
-        """
-        return int(seconds * self.frame_rate)
-
-    def read(self, n_frames: Optional[int]) -> 'AudioSample':
-        """
-        Retrieve up to ``n_frames`` of audio data from the audio source.  Depending on implementation, it may block
-        until all frames are read or just return what has been retrieved.  Audio is returned in an ``AudioSample``
-        object.
-        """
-        raise NotImplementedError
-
-    def read_seconds(self, n_seconds: Optional[TimeType]) -> 'AudioSample':
-        """
-        Retrieve up to ``n_seconds`` of audio data from the audio source.  Depending on implementation, it may block
-        until all frames are read or just return what has been retrieved.  Audio is returned in an ``AudioSample``
-        object.
-        """
-        if n_seconds is not None:
-            if not isinstance(n_seconds, TimeType) or n_seconds <= 0:
-                raise TypeError(f'n_seconds must be None or a number greater than zero, got {n_seconds!r}')
-
-        if n_seconds is None:
-            n_frames = None
-        else:
-            n_frames = self.seconds_to_frame(n_seconds)
-        return self.read(n_frames)
-
-
 class AudioSample:
     def __init__(self, data: AudioSegment):
         self.data = data
@@ -429,3 +393,39 @@ class AudioSample:
         self.plot_spectrogram(axis=ax_spectrogram)
 
         plt.show()
+
+
+class BaseAudioSource:
+    @property
+    def frame_rate(self) -> int:
+        raise NotImplementedError
+
+    def seconds_to_frame(self, seconds: TimeType) -> int:
+        """
+        Convert time (in seconds) into number of frames.
+        """
+        return int(seconds * self.frame_rate)
+
+    def read(self, n_frames: Optional[int]) -> AudioSample:
+        """
+        Retrieve up to ``n_frames`` of audio data from the audio source.  Depending on implementation, it may block
+        until all frames are read or just return what has been retrieved.  Audio is returned in an ``AudioSample``
+        object.
+        """
+        raise NotImplementedError
+
+    def read_seconds(self, n_seconds: Optional[TimeType]) -> AudioSample:
+        """
+        Retrieve up to ``n_seconds`` of audio data from the audio source.  Depending on implementation, it may block
+        until all frames are read or just return what has been retrieved.  Audio is returned in an ``AudioSample``
+        object.
+        """
+        if n_seconds is not None:
+            if not isinstance(n_seconds, TimeType) or n_seconds <= 0:
+                raise TypeError(f'n_seconds must be None or a number greater than zero, got {n_seconds!r}')
+
+        if n_seconds is None:
+            n_frames = None
+        else:
+            n_frames = self.seconds_to_frame(n_seconds)
+        return self.read(n_frames)
