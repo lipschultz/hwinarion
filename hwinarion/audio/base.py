@@ -228,7 +228,7 @@ class AudioSample:
         return final_sample
 
     @classmethod
-    def from_silence(cls, n_seconds: TimeType, frame_rate: int) -> 'AudioSample':
+    def generate_silence(cls, n_seconds: TimeType, frame_rate: int) -> 'AudioSample':
         return AudioSample(AudioSegment.silent(duration=int(n_seconds * 1000), frame_rate=frame_rate))
 
     @classmethod

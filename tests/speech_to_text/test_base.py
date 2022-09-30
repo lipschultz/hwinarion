@@ -57,7 +57,7 @@ def test_detailed_transcripts_best_transcript(transcripts, expected_best_transcr
 
 
 def test_base_speech_to_text_getting_best_transcribed_audio():
-    any_audio = AudioSample.from_silence(1, 44100)
+    any_audio = AudioSample.generate_silence(1, 44100)
     subject = base.BaseSpeechToText()
     subject.transcribe_audio_detailed = mock.MagicMock(return_value=base.DetailedTranscripts([
         base.DetailedTranscript('any transcript 1', 0.99, None),
