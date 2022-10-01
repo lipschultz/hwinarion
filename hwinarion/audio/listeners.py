@@ -2,15 +2,15 @@ import threading
 from dataclasses import dataclass
 from enum import Enum
 from queue import SimpleQueue
-from typing import List, Callable, Optional
+from typing import Callable, List, Optional
 
 from hwinarion.audio.base import AudioSample, BaseAudioSource, TimeType
 
 
 class FrameStateEnum(Enum):
-    LISTEN = 'LISTEN'
-    PAUSE = 'PAUSE'
-    STOP = 'STOP'
+    LISTEN = "LISTEN"
+    PAUSE = "PAUSE"
+    STOP = "STOP"
 
 
 @dataclass
@@ -24,7 +24,7 @@ class ListenerRunningError(Exception):
 
 
 class BackgroundListener:
-    def __init__(self, listener: 'BaseListener', listener_kwargs: dict):
+    def __init__(self, listener: "BaseListener", listener_kwargs: dict):
         self._listener = listener
         self._listener_kwargs = listener_kwargs
         self._thread = None
@@ -161,7 +161,7 @@ class BaseListener:
         """
         Produce a background listener object that uses this listener.
         """
-        return BackgroundListener(self, listener_kwargs={'chunk_size': chunk_size})
+        return BackgroundListener(self, listener_kwargs={"chunk_size": chunk_size})
 
 
 class BaseStateLabeler:
@@ -218,28 +218,28 @@ class SilenceBasedListener(BaseListener):
 
     def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
         if latest_frame.rms > self.silence_threshold_rms:
-            print(len(all_frames), latest_frame.rms, 'LISTEN')
+            print(len(all_frames), latest_frame.rms, "LISTEN")
             return FrameStateEnum.LISTEN
         else:
             if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
                 # Haven't started listening yet
-                print(len(all_frames), latest_frame.rms,'PAUSE')
+                print(len(all_frames), latest_frame.rms, "PAUSE")
                 return FrameStateEnum.PAUSE
             else:
-                print(len(all_frames), latest_frame.rms,'STOP')
+                print(len(all_frames), latest_frame.rms, "STOP")
                 return FrameStateEnum.STOP
 
 
 class ConfigurableListener(BaseListener):
     def __init__(
-            self,
-            source: BaseAudioSource,
-            determine_frame_state: Callable,
-            *,
-            pre_process_individual_audio_sample: Optional[Callable] = None,
-            filter_audio_samples: Optional[Callable] = None,
-            join_audio_samples: Optional[Callable] = None,
-            post_process_final_audio_sample: Optional[Callable] = None,
+        self,
+        source: BaseAudioSource,
+        determine_frame_state: Callable,
+        *,
+        pre_process_individual_audio_sample: Optional[Callable] = None,
+        filter_audio_samples: Optional[Callable] = None,
+        join_audio_samples: Optional[Callable] = None,
+        post_process_final_audio_sample: Optional[Callable] = None,
     ):
         super().__init__(source)
 

@@ -1,6 +1,6 @@
 import io
 from array import array
-from typing import Union, Optional, Iterable, Tuple
+from typing import Iterable, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,7 +35,7 @@ class AudioSample:
         """
         return self.data.duration_seconds
 
-    def slice_time(self, start_stop: TimeType, stop: Optional[TimeType] = None) -> 'AudioSample':
+    def slice_time(self, start_stop: TimeType, stop: Optional[TimeType] = None) -> "AudioSample":
         """
         Get a continuous section of audio defined by ``start_stop`` and ``stop``.  The parameters follow Python slice
         parameters.  Both ``start_stop`` and ``stop`` are in seconds.  Negative values are not currently supported
@@ -57,7 +57,7 @@ class AudioSample:
         stop_ms = stop * 1000
         return AudioSample(self.data[start_ms:stop_ms])
 
-    def slice_frame(self, start_stop: int, stop: Optional[int] = None) -> 'AudioSample':
+    def slice_frame(self, start_stop: int, stop: Optional[int] = None) -> "AudioSample":
         """
         Get a continuous section of audio defined by ``start_stop`` and ``stop``.  The parameters follow Python slice
         parameters.  Both ``start_stop`` and ``stop`` are number of frames.  Negative values are not currently supported
@@ -89,7 +89,7 @@ class AudioSample:
         """
         Get the audio sample as a numpy array.
         """
-        return np.frombuffer(self.to_bytes(), dtype=f'int{self.bit_depth}')
+        return np.frombuffer(self.to_bytes(), dtype=f"int{self.bit_depth}")
 
     def to_array(self) -> array:
         """
@@ -156,14 +156,14 @@ class AudioSample:
         """
         The maximum possible amplitude (based on the bit depth of each sample).
         """
-        return (2 ** self.bit_depth) / 2  # The "/2" is because half of the size is for above 0, the other for below
+        return (2**self.bit_depth) / 2  # The "/2" is because half of the size is for above 0, the other for below
 
     def convert(
-            self,
-            frame_rate: Optional[int] = None,
-            sample_width: Optional[int] = None,
-            n_channels: Optional[int] = None
-    ) -> 'AudioSample':
+        self,
+        frame_rate: Optional[int] = None,
+        sample_width: Optional[int] = None,
+        n_channels: Optional[int] = None,
+    ) -> "AudioSample":
         """
         Convert the audio sample into a new audio sample with a different frame rate, sample width, and/or number of
         channels.
@@ -181,16 +181,16 @@ class AudioSample:
 
         return AudioSample(new_data)
 
-    def invert_phase(self) -> 'AudioSample':
+    def invert_phase(self) -> "AudioSample":
         """
         Invert the phase of the audio sample.
         """
         return AudioSample(self.data.invert_phase())
 
-    def normalize(self) -> 'AudioSample':
+    def normalize(self) -> "AudioSample":
         return AudioSample(self.data.normalize(0))
 
-    def append(self, audio_sample: 'AudioSample', crossfade: TimeType = 0) -> 'AudioSample':
+    def append(self, audio_sample: "AudioSample", crossfade: TimeType = 0) -> "AudioSample":
         """
         Return a new ``AudioSample`` where ``audio_sample`` is appended onto the end of the current audio sample.
 
@@ -198,7 +198,7 @@ class AudioSample:
         """
         return AudioSample(self.data.append(audio_sample.data, crossfade=crossfade * 1000))  # pydub works in ms
 
-    def overlay(self, audio_sample: 'AudioSample', offset: TimeType = 0) -> 'AudioSample':
+    def overlay(self, audio_sample: "AudioSample", offset: TimeType = 0) -> "AudioSample":
         """
         Return a new ``AudioSample`` where ``audio_sample`` and the current audio sample are overlaid on top of each
         other.
@@ -208,12 +208,10 @@ class AudioSample:
         If ``audio_sample`` and the offset together are longer than the current sample, then ``audio_sample`` is
         truncated to fit within the duration of the current sample.
         """
-        return AudioSample(
-            self.data.overlay(audio_sample.data, position=int(offset * 1000))  # pydub works in ms
-        )
+        return AudioSample(self.data.overlay(audio_sample.data, position=int(offset * 1000)))  # pydub works in ms
 
     @classmethod
-    def from_iterable(cls, audio_samples: Iterable['AudioSample'], crossfade: TimeType = 0) -> Optional['AudioSample']:
+    def from_iterable(cls, audio_samples: Iterable["AudioSample"], crossfade: TimeType = 0) -> Optional["AudioSample"]:
         """
         Create an audio sample by concatenating ``audio_samples`` together.
 
@@ -228,20 +226,22 @@ class AudioSample:
         return final_sample
 
     @classmethod
-    def generate_silence(cls, n_seconds: TimeType, frame_rate: int) -> 'AudioSample':
+    def generate_silence(cls, n_seconds: TimeType, frame_rate: int) -> "AudioSample":
         return AudioSample(AudioSegment.silent(duration=int(n_seconds * 1000), frame_rate=frame_rate))
 
     @classmethod
-    def from_numpy(cls, data: np.ndarray, frame_rate: int) -> 'AudioSample':
-        return AudioSample(AudioSegment(
-            data.tobytes(),
-            frame_rate=frame_rate,
-            sample_width=data.dtype.itemsize,
-            channels=1 if len(data.shape) == 1 else data.shape[1]
-        ))
+    def from_numpy(cls, data: np.ndarray, frame_rate: int) -> "AudioSample":
+        return AudioSample(
+            AudioSegment(
+                data.tobytes(),
+                frame_rate=frame_rate,
+                sample_width=data.dtype.itemsize,
+                channels=1 if len(data.shape) == 1 else data.shape[1],
+            )
+        )
 
     @classmethod
-    def from_numpy_and_sample(cls, data: np.ndarray, source_sample: 'AudioSample') -> 'AudioSample':
+    def from_numpy_and_sample(cls, data: np.ndarray, source_sample: "AudioSample") -> "AudioSample":
         return cls.from_numpy(data, source_sample.frame_rate)
 
     def play(self, delta_gain_dB: float = None) -> None:
@@ -259,32 +259,32 @@ class AudioSample:
     def export(self, filename, **kwargs) -> io.BufferedRandom:
         return self.data.export(filename, **kwargs)
 
-    def remove_dc_offset(self, rolling: bool = False) -> 'AudioSample':
+    def remove_dc_offset(self, rolling: bool = False) -> "AudioSample":
         if not rolling:
-            return AudioSample(
-                self.data.remove_dc_offset()
-            )
+            return AudioSample(self.data.remove_dc_offset())
 
         # This should work, but I lose half the audio when converting the numpy array back into an AudioSegment
         window_size = 15
 
         samples = self.to_numpy()
         view = sliding_window_view(samples, window_size)
-        frame_averages = np.concatenate((
-            view.mean(axis=-1).astype(int),
-            [int(samples[-(window_size-1):].mean())]*(window_size-1)
-        ))
+        frame_averages = np.concatenate(
+            (
+                view.mean(axis=-1).astype(int),
+                [int(samples[-(window_size - 1) :].mean())] * (window_size - 1),
+            )
+        )
 
         adjusted = samples - frame_averages
         return AudioSample.from_numpy_and_sample(adjusted, self)
 
     def plot_amplitude(
-            self,
-            *,
-            title=None,
-            axis=None,
-            highlight_regions: Iterable[Tuple[TimeType, TimeType]] = (),
-            normalize_amplitude: bool = False,
+        self,
+        *,
+        title=None,
+        axis=None,
+        highlight_regions: Iterable[Tuple[TimeType, TimeType]] = (),
+        normalize_amplitude: bool = False,
     ) -> None:
         """
         Plot the amplitude of the audio sample in a matplotlib graph.  The x-axis is time in seconds.
@@ -315,21 +315,27 @@ class AudioSample:
 
         if title is not None:
             axis.set_title(title)
-        axis.set_xlabel('Time (sec)')
-        axis.set_ylabel('Amplitude')
+        axis.set_xlabel("Time (sec)")
+        axis.set_ylabel("Amplitude")
 
         amplitude_line, *_ = axis.plot(time, samples)
         amplitude_color = amplitude_line.get_color()
 
         for region in highlight_regions:
-            axis.fill_between(region, samples.min(), samples.max(), facecolor=amplitude_color, alpha=0.3)
+            axis.fill_between(
+                region,
+                samples.min(),
+                samples.max(),
+                facecolor=amplitude_color,
+                alpha=0.3,
+            )
 
         if show_plot:
             plt.show()
 
     plot = plot_amplitude
 
-    def plot_spectrogram(self, title=None, *, mode='psd', axis=None):
+    def plot_spectrogram(self, title=None, *, mode="psd", axis=None):
         """
         Plot the spectrogram of the audio sample in a matplotlib graph.
 
@@ -393,7 +399,7 @@ class BaseAudioSource:
         """
         if n_seconds is not None:
             if not isinstance(n_seconds, TimeType) or n_seconds <= 0:
-                raise TypeError(f'n_seconds must be None or a number greater than zero, got {n_seconds!r}')
+                raise TypeError(f"n_seconds must be None or a number greater than zero, got {n_seconds!r}")
 
         if n_seconds is None:
             n_frames = None

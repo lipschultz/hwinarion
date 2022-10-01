@@ -1,10 +1,10 @@
 import io
-from typing import Optional, List
+from typing import List, Optional
 
 import pyaudio
 from pydub import AudioSegment
 
-from hwinarion.audio.base import BaseAudioSource, AudioSample
+from hwinarion.audio.base import AudioSample, BaseAudioSource
 
 
 class Microphone(BaseAudioSource):
@@ -14,7 +14,9 @@ class Microphone(BaseAudioSource):
         """
         pa = pyaudio.PyAudio()
 
-        assert device_index is None or (isinstance(device_index, int) and 0 <= device_index < pa.get_device_count()), f'device_index must be None or positive integer between 0 and {pa.get_device_count()}, got: {device_index!r}'
+        assert device_index is None or (
+            isinstance(device_index, int) and 0 <= device_index < pa.get_device_count()
+        ), f"device_index must be None or positive integer between 0 and {pa.get_device_count()}, got: {device_index!r}"
 
         self._device_index = device_index
         self.DEFAULT_READ_DURATION_SECONDS = 5
@@ -23,10 +25,7 @@ class Microphone(BaseAudioSource):
     def get_device_names(cls) -> List[str]:
         pa = pyaudio.PyAudio()
         try:
-            return [
-                pa.get_device_info_by_index(i).get('name')
-                for i in range(pa.get_device_count())
-            ]
+            return [pa.get_device_info_by_index(i).get("name") for i in range(pa.get_device_count())]
         finally:
             pa.terminate()
 
@@ -47,7 +46,7 @@ class Microphone(BaseAudioSource):
 
     @property
     def frame_rate(self) -> int:
-        return int(self.audio_device_information['defaultSampleRate'])
+        return int(self.audio_device_information["defaultSampleRate"])
 
     @property
     def n_channels(self) -> int:
@@ -70,7 +69,9 @@ class Microphone(BaseAudioSource):
         return self.seconds_to_frames(self.DEFAULT_READ_DURATION_SECONDS)
 
     def read_bytes(self, n_frames: int) -> bytes:
-        assert isinstance(n_frames, int) and n_frames > 0, f'n_frames must be an integer greater than zero, got {n_frames!r}'
+        assert (
+            isinstance(n_frames, int) and n_frames > 0
+        ), f"n_frames must be an integer greater than zero, got {n_frames!r}"
 
         pa = pyaudio.PyAudio()
         try:
@@ -91,7 +92,7 @@ class Microphone(BaseAudioSource):
                 fp,
                 sample_width=self.frame_width,
                 frame_rate=self.frame_rate,
-                channels=self.n_channels
+                channels=self.n_channels,
             )
 
     def read(self, n_frames: Optional[int]) -> AudioSample:

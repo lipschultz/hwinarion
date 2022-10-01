@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List, Optional
 
 from hwinarion.audio.base import AudioSample
 
@@ -43,7 +43,9 @@ class BaseSpeechToText:
     def __init__(self):
         pass
 
-    def transcribe_audio_detailed(self, audio: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True) -> DetailedTranscripts:
+    def transcribe_audio_detailed(
+        self, audio: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True
+    ) -> DetailedTranscripts:
         raise NotImplementedError
 
     def transcribe_audio(self, audio: AudioSample) -> str:

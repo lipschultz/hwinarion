@@ -6,8 +6,12 @@ from pocketsphinx import pocketsphinx
 
 from hwinarion.audio.base import AudioSample
 from hwinarion.speech_to_text import BaseSpeechToText
-from hwinarion.speech_to_text.base import NoTranscriptionError, DetailedTranscripts, DetailedTranscript, \
-    TranscriptSegment
+from hwinarion.speech_to_text.base import (
+    DetailedTranscript,
+    DetailedTranscripts,
+    NoTranscriptionError,
+    TranscriptSegment,
+)
 
 
 class SphinxSpeechToText(BaseSpeechToText):
@@ -15,11 +19,17 @@ class SphinxSpeechToText(BaseSpeechToText):
     BIT_DEPTH = 16
     N_CHANNELS = 1
 
-    START_TOKEN = '<s>'
-    END_TOKEN = '</s>'
-    SILENCE_TOKEN = '<sil>'
+    START_TOKEN = "<s>"
+    END_TOKEN = "</s>"
+    SILENCE_TOKEN = "<sil>"
 
-    def __init__(self, model_path: Union[str, Path], frame_rate: int = FRAME_RATE, bit_depth: int = BIT_DEPTH, n_channels: int = N_CHANNELS):
+    def __init__(
+        self,
+        model_path: Union[str, Path],
+        frame_rate: int = FRAME_RATE,
+        bit_depth: int = BIT_DEPTH,
+        n_channels: int = N_CHANNELS,
+    ):
         super().__init__()
         self.model_path = Path(model_path)
         self.frame_rate = frame_rate
@@ -41,7 +51,13 @@ class SphinxSpeechToText(BaseSpeechToText):
     def sample_width(self) -> int:
         return self.bit_depth // 8
 
-    def transcribe_audio_detailed(self, audio_data: AudioSample, *, n_transcriptions: int = 1, segment_timestamps: bool = True) -> DetailedTranscripts:
+    def transcribe_audio_detailed(
+        self,
+        audio_data: AudioSample,
+        *,
+        n_transcriptions: int = 1,
+        segment_timestamps: bool = True,
+    ) -> DetailedTranscripts:
         assert n_transcriptions == 1
 
         self._recognizer.start_utt()
@@ -49,10 +65,10 @@ class SphinxSpeechToText(BaseSpeechToText):
             audio_data.convert(
                 sample_width=self.sample_width,
                 frame_rate=self.frame_rate,
-                n_channels=self.n_channels
+                n_channels=self.n_channels,
             ).to_bytes(),
             False,  # no search
-            True  # full utterance
+            True,  # full utterance
         )
         self._recognizer.end_utt()
 
@@ -75,7 +91,9 @@ class SphinxSpeechToText(BaseSpeechToText):
                             segment.end_frame / sphinx_fps,
                         )
                         for segment in self._recognizer.seg()
-                    ] if segment_timestamps else None
+                    ]
+                    if segment_timestamps
+                    else None,
                 )
             ]
         )

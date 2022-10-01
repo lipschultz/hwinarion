@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 from pydub import AudioSegment
 
-from hwinarion.audio.base import BaseAudioSource, AudioSample
+from hwinarion.audio.base import AudioSample, BaseAudioSource
 
 
 class AudioFile(BaseAudioSource):
@@ -28,12 +28,14 @@ class AudioFile(BaseAudioSource):
 
     def read_pydub(self, n_frames: Optional[int]) -> AudioSegment:
         if self.frame_index >= self.__max_audio_frames():
-            raise EOFError(f'Attempted to read past the end of the audio file.')
+            raise EOFError(f"Attempted to read past the end of the audio file.")
 
         if n_frames is None:
             n_frames = self.__max_audio_frames() - self.frame_index
 
-        assert isinstance(n_frames, int) and n_frames > 0, f'n_frames must be an integer greater than zero, got {n_frames!r}'
+        assert (
+            isinstance(n_frames, int) and n_frames > 0
+        ), f"n_frames must be an integer greater than zero, got {n_frames!r}"
 
         read_data = self._audio_data.get_sample_slice(self.frame_index, self.frame_index + n_frames)
         self.frame_index += n_frames
@@ -46,6 +48,3 @@ class AudioFile(BaseAudioSource):
         If ``n_frames` is ``None``, read all remaining frames in the file.
         """
         return AudioSample(self.read_pydub(n_frames))
-
-
-
