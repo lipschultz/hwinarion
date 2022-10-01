@@ -15,6 +15,12 @@ class AudioSample:
     def __init__(self, data: AudioSegment):
         self.data = data
 
+    def __eq__(self, other: "AudioSample") -> bool:
+        """
+        Returns True if other object is an ``AudioSample`` object and they have the same data.
+        """
+        return isinstance(other, AudioSample) and self.data == other.data
+
     def __len__(self):
         """
         The number of frames in the audio sample.
@@ -125,6 +131,9 @@ class AudioSample:
 
     @property
     def bit_depth(self) -> int:
+        """
+        The number of bits dedicated to each sample.
+        """
         return self.sample_width * 8
 
     @property
