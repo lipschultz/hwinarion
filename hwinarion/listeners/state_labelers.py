@@ -36,5 +36,3 @@ class SilenceBasedStateLabeler(BaseStateLabeler):
                 return FrameStateEnum.PAUSE
             else:
                 return FrameStateEnum.STOP
-
-
