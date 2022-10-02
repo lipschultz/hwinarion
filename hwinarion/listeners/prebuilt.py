@@ -1,7 +1,7 @@
-from typing import List, Callable, Optional
+from typing import Callable, List, Optional
 
-from hwinarion.audio.base import BaseAudioSource, AudioSample, TimeType
-from hwinarion.listeners.base import BaseListener, AnnotatedFrame, FrameStateEnum
+from hwinarion.audio.base import AudioSample, BaseAudioSource, TimeType
+from hwinarion.listeners.base import AnnotatedFrame, BaseListener, FrameStateEnum
 
 
 class TimeBasedListener(BaseListener):
@@ -24,28 +24,25 @@ class SilenceBasedListener(BaseListener):
 
     def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
         if latest_frame.rms > self.silence_threshold_rms:
-            print(len(all_frames), latest_frame.rms, 'LISTEN')
             return FrameStateEnum.LISTEN
         else:
             if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
                 # Haven't started listening yet
-                print(len(all_frames), latest_frame.rms,'PAUSE')
                 return FrameStateEnum.PAUSE
             else:
-                print(len(all_frames), latest_frame.rms,'STOP')
                 return FrameStateEnum.STOP
 
 
 class ConfigurableListener(BaseListener):
     def __init__(
-            self,
-            source: BaseAudioSource,
-            determine_frame_state: Callable,
-            *,
-            pre_process_individual_audio_sample: Optional[Callable] = None,
-            filter_audio_samples: Optional[Callable] = None,
-            join_audio_samples: Optional[Callable] = None,
-            post_process_final_audio_sample: Optional[Callable] = None,
+        self,
+        source: BaseAudioSource,
+        determine_frame_state: Callable,
+        *,
+        pre_process_individual_audio_sample: Optional[Callable] = None,
+        filter_audio_samples: Optional[Callable] = None,
+        join_audio_samples: Optional[Callable] = None,
+        post_process_final_audio_sample: Optional[Callable] = None,
     ):
         super().__init__(source)
 
