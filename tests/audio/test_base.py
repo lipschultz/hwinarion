@@ -47,6 +47,46 @@ class TestAudioSample:
 
         assert (subject1 == subject2) is False
 
+    @pytest.mark.parametrize(
+        "stop_frame", [100, 50_000, 100_000], ids=["under frame limit", "at last frame", "after last frame"]
+    )
+    def test_frame_slice_stop_only(self, stop_frame):
+        numpy_sample = (10_000 * np.sin(np.linspace(0, 2, 50_000))).astype("int16")
+        subject = base.AudioSample.from_numpy(numpy_sample, 44100)
+        expected_sample = numpy_sample[:stop_frame]
+
+        actual_sample = subject.slice_frame(stop_frame).to_numpy()
+
+        assert (actual_sample == expected_sample).all()
+
+    @pytest.mark.parametrize(
+        "start_frame, stop_frame",
+        [
+            (0, 100),
+            (0, 50_000),
+            (0, 100_000),
+            (100, 1_000),
+            (100, 50_000),
+            (100, 100_000),
+        ],
+        ids=[
+            "start to middle",
+            "start to last frame",
+            "start to after last frame",
+            "middle to middle",
+            "middle to last frame",
+            "middle to after last frame",
+        ],
+    )
+    def test_frame_slice_start_and_stop(self, start_frame, stop_frame):
+        numpy_sample = (10_000 * np.sin(np.linspace(0, 2, 50_000))).astype("int16")
+        subject = base.AudioSample.from_numpy(numpy_sample, 44100)
+        expected_sample = numpy_sample[start_frame:stop_frame]
+
+        actual_sample = subject.slice_frame(start_frame, stop_frame).to_numpy()
+
+        assert (actual_sample == expected_sample).all()
+
 
 class TestBaseAudioSource:
     @pytest.mark.parametrize("seconds", [7, 11.12])

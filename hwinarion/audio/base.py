@@ -81,9 +81,7 @@ class AudioSample:
             start = start_stop
 
         # pydub slices in milliseconds
-        start = self.frame_to_seconds(start)
-        stop = self.frame_to_seconds(stop)
-        return self.slice_time(start, stop)
+        return self.from_numpy_and_sample(self.to_numpy()[start:stop], self)
 
     def to_bytes(self) -> bytes:
         """
