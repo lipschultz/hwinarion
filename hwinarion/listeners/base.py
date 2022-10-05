@@ -121,11 +121,17 @@ class BaseListener:
 
         while frame_state != FrameStateEnum.STOP:
             all_frames.append(AnnotatedFrame(frame, frame_state))
-            frame = self.source.read(chunk_size)
+            try:
+                frame = self.source.read(chunk_size)
+            except EOFError:
+                frame = None
+                frame_state = FrameStateEnum.STOP
+                break
             frame = self._pre_process_individual_audio_sample(frame)
             frame_state = self._determine_frame_state(frame, all_frames)
 
-        all_frames.append(AnnotatedFrame(frame, frame_state))
+        if frame is not None:
+            all_frames.append(AnnotatedFrame(frame, frame_state))
         return all_frames
 
     def _filter_audio_samples(self, all_frames: List[AnnotatedFrame]) -> List[AnnotatedFrame]:
