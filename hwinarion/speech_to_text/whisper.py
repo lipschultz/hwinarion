@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 import whisper
@@ -16,7 +16,7 @@ class WhisperSpeechToText(BaseSpeechToText):
         model_name: str,
         device: Optional[Union[str, torch.device]] = None,
         download_root: Union[str, Path] = None,
-        in_memory: bool = False
+        in_memory: bool = False,
     ):
         super().__init__()
         self.model_name = model_name
@@ -41,7 +41,7 @@ class WhisperSpeechToText(BaseSpeechToText):
 
         ``segment_timestamps``, if True, will provide start and end timestamps for each word in the transcript.
         """
-        with tempfile.NamedTemporaryFile(suffix='.wav') as temp_fp:
+        with tempfile.NamedTemporaryFile(suffix=".wav") as temp_fp:
             audio_data.export(temp_fp.name)
             result = self._model.transcribe(temp_fp.name)
 
@@ -51,9 +51,10 @@ class WhisperSpeechToText(BaseSpeechToText):
                     result["text"],
                     0,
                     [
-                        TranscriptSegment(segment['text'], segment['start'], segment['end'])
-                        for segment in result['segments']
-                    ]
+                        TranscriptSegment(segment["text"], segment["start"], segment["end"])
+                        for segment in result["segments"]
+                    ],
                 )
-            ]
+            ],
+            result,
         )

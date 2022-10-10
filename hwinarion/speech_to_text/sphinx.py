@@ -95,5 +95,6 @@ class SphinxSpeechToText(BaseSpeechToText):
                     if segment_timestamps
                     else None,
                 )
-            ]
+            ],
+            {"hypothesis": hypothesis},
         )

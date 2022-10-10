@@ -59,7 +59,8 @@ class CoquiSpeechToText(BaseSpeechToText):
             [
                 self._coqui_token_metadata_to_detailed_transcript(transcript, segment_timestamps=segment_timestamps)
                 for transcript in result.transcripts
-            ]
+            ],
+            result,
         )
         return results
 

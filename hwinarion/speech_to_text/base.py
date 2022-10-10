@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from hwinarion.audio.base import AudioSample
 
@@ -30,6 +30,7 @@ class DetailedTranscript:
 @dataclass(frozen=True)
 class DetailedTranscripts:
     transcripts: List[DetailedTranscript]
+    raw_model_response: Any
 
     def __post_init__(self):
         self.transcripts.sort(key=lambda detailed_transcript: detailed_transcript.confidence, reverse=True)

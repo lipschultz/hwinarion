@@ -73,5 +73,6 @@ class VoskSpeechToText(BaseSpeechToText):
                     else None,
                 )
                 for transcript in result["alternatives"]
-            ]
+            ],
+            result,
         )
