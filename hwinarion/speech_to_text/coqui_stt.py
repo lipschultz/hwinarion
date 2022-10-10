@@ -45,10 +45,10 @@ class CoquiSpeechToText(BaseSpeechToText):
         return self._model.sampleRate()
 
     def transcribe_audio_detailed(
-        self, audio_data: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True
+        self, audio: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True
     ) -> DetailedTranscripts:
         result = self._model.sttWithMetadata(
-            audio_data.convert(
+            audio.convert(
                 frame_rate=self.frame_rate,
                 n_channels=self.n_channels,
             ).to_numpy(),

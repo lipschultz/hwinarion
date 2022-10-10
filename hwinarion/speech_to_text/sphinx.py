@@ -53,7 +53,7 @@ class SphinxSpeechToText(BaseSpeechToText):
 
     def transcribe_audio_detailed(
         self,
-        audio_data: AudioSample,
+        audio: AudioSample,
         *,
         n_transcriptions: int = 1,
         segment_timestamps: bool = True,
@@ -62,7 +62,7 @@ class SphinxSpeechToText(BaseSpeechToText):
 
         self._recognizer.start_utt()
         self._recognizer.process_raw(
-            audio_data.convert(
+            audio.convert(
                 sample_width=self.sample_width,
                 frame_rate=self.frame_rate,
                 n_channels=self.n_channels,
@@ -74,10 +74,10 @@ class SphinxSpeechToText(BaseSpeechToText):
 
         hypothesis = self._recognizer.hyp()
         if hypothesis is None:
-            raise NoTranscriptionError(audio_file=audio_data)
+            raise NoTranscriptionError(audio_file=audio)
 
         # Sphinx docs imply fps is 100, but experimentation showed that wasn't the case
-        sphinx_fps = list(self._recognizer.seg())[-1].end_frame / audio_data.n_seconds if segment_timestamps else None
+        sphinx_fps = list(self._recognizer.seg())[-1].end_frame / audio.n_seconds if segment_timestamps else None
 
         return DetailedTranscripts(
             [

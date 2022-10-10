@@ -28,7 +28,7 @@ class WhisperSpeechToText(BaseSpeechToText):
 
     def transcribe_audio_detailed(
         self,
-        audio_data: AudioSample,
+        audio: AudioSample,
         *,
         n_transcriptions: int = 3,
         segment_timestamps: bool = True,
@@ -42,7 +42,7 @@ class WhisperSpeechToText(BaseSpeechToText):
         ``segment_timestamps``, if True, will provide start and end timestamps for each word in the transcript.
         """
         with tempfile.NamedTemporaryFile(suffix=".wav") as temp_fp:
-            audio_data.export(temp_fp.name)
+            audio.export(temp_fp.name)
             result = self._model.transcribe(temp_fp.name)
 
         return DetailedTranscripts(

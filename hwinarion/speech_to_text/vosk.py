@@ -36,7 +36,7 @@ class VoskSpeechToText(BaseSpeechToText):
 
     def transcribe_audio_detailed(
         self,
-        audio_data: AudioSample,
+        audio: AudioSample,
         *,
         n_transcriptions: int = 3,
         segment_timestamps: bool = True,
@@ -52,7 +52,7 @@ class VoskSpeechToText(BaseSpeechToText):
         self._recognizer.SetMaxAlternatives(n_transcriptions)
         self._recognizer.SetWords(segment_timestamps)
         self._recognizer.AcceptWaveform(
-            audio_data.convert(
+            audio.convert(
                 sample_width=self.sample_width,
                 frame_rate=self.frame_rate,
                 n_channels=self.n_channels,
