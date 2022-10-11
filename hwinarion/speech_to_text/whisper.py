@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import torch
 import whisper
@@ -58,3 +58,17 @@ class WhisperSpeechToText(BaseSpeechToText):
             ],
             result,
         )
+
+    def detect_language_probabilities(self, audio: AudioSample) -> Dict[str, float]:
+        with tempfile.NamedTemporaryFile(suffix=".wav") as temp_fp:
+            audio.export(temp_fp.name)
+            whisper_audio = whisper.load_audio(temp_fp.name)
+            trimmed_whisper_audio = whisper.pad_or_trim(whisper_audio)
+
+        mel = whisper.log_mel_spectrogram(trimmed_whisper_audio).to(self._model.device)
+        _, language_probabilities = self._model.detect_language(mel)
+        return language_probabilities
+
+    def detect_language(self, audio: AudioSample) -> str:
+        probabilities = self.detect_language_probabilities(audio)
+        return max(probabilities, key=probabilities.get)
