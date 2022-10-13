@@ -48,7 +48,7 @@ class BackgroundListener:
 
     def stop(self, timeout: Optional[int] = None) -> bool:
         """
-        Stop the background listsener.
+        Stop the background listener.
 
         ``timeout`` indicates how long to wait when joining the background listener thread.  If ``None`` (default),
         then don't wait.
