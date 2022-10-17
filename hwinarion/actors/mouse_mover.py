@@ -71,7 +71,7 @@ class MouseMover:
         while (requested_action := self.queue.get()) is not None:
             action, *args = requested_action
             if action == "to":
-                x, y, velocity, tween = args
+                x, y, velocity = args
             else:
                 if action == "left":
                     x = 0
@@ -89,34 +89,36 @@ class MouseMover:
                     logger.error(f"Unrecognized action: {action}, {args}")
                     continue
 
-                velocity, tween = args
+                velocity = args
 
-            distance = math.dist((x, y), pyautogui.position())
-            duration = distance / velocity
-            logger.debug(f"start moving: ({x}, {y}), {duration}")
-            pyautogui.moveTo(x, y, duration, tween)
-            logger.debug("stop moving")
+            self._act_move_mouse(x, y, velocity)
+
+    def _act_move_mouse(self, x, y, velocity):
+        distance = math.dist((x, y), pyautogui.position())
+        duration = distance / velocity
+        logger.debug(f"start moving: ({x}, {y}), {duration}")
+        pyautogui.moveTo(x, y, duration)
+        logger.debug("stop moving")
 
     def move_to(
         self,
         x: Union[int, float],
         y: Union[int, float],
         velocity: float = SPEED_NORMAL,
-        tween: TweenType = pyautogui.linear,
     ) -> None:
-        self.queue.put(("to", x, y, velocity, tween))
+        self.queue.put(("to", x, y, velocity))
 
-    def move_left(self, velocity: float = SPEED_NORMAL, tween: TweenType = pyautogui.linear) -> None:
-        self.queue.put(("left", velocity, tween))
+    def move_left(self, velocity: float = SPEED_NORMAL) -> None:
+        self.queue.put(("left", velocity))
 
-    def move_right(self, velocity: float = SPEED_NORMAL, tween: TweenType = pyautogui.linear) -> None:
-        self.queue.put(("right", velocity, tween))
+    def move_right(self, velocity: float = SPEED_NORMAL) -> None:
+        self.queue.put(("right", velocity))
 
-    def move_up(self, velocity: float = SPEED_NORMAL, tween: TweenType = pyautogui.linear) -> None:
-        self.queue.put(("up", velocity, tween))
+    def move_up(self, velocity: float = SPEED_NORMAL) -> None:
+        self.queue.put(("up", velocity))
 
-    def move_down(self, velocity: float = SPEED_NORMAL, tween: TweenType = pyautogui.linear) -> None:
-        self.queue.put(("down", velocity, tween))
+    def move_down(self, velocity: float = SPEED_NORMAL) -> None:
+        self.queue.put(("down", velocity))
 
     def stop_moving(self):
         pass
