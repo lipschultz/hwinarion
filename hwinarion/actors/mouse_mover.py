@@ -4,13 +4,35 @@ isort:skip_file
 
 import math
 import multiprocessing
-from typing import Callable, Union
+import platform
+import queue
+import sys
+from typing import Callable, Union, Tuple
 
-import Xlib.threaded  # pylint: disable=unused-import
-import pyautogui
 from loguru import logger
 
 
+# pyautogui.moveTo is too slow, so instead of using the public function, using the lower-level platform module which is
+# fast enough.
+if sys.platform.startswith("java"):
+    # from . import _pyautogui_java as pyautogui_module
+    raise NotImplementedError("Jython is not yet supported by PyAutoGUI.")
+elif sys.platform == "darwin":
+    from pyautogui import _pyautogui_osx as pyautogui_module
+elif sys.platform == "win32":
+    from pyautogui import _pyautogui_win as pyautogui_module
+elif platform.system() == "Linux":
+    import Xlib.threaded  # pylint: disable=unused-import
+    from pyautogui import _pyautogui_x11 as pyautogui_module
+else:
+    raise NotImplementedError("Your platform (%s) is not supported by PyAutoGUI." % (platform.system()))
+
+
+# This needs to be imported after Xlib.threaded in Linux, so it's after the imports above
+import pyautogui
+
+
+PositionType = Union[Tuple[int, int], pyautogui.Point]
 TweenType = Callable[[Union[int, float]], float]
 
 """
@@ -93,12 +115,45 @@ class MouseMover:
 
             self._act_move_mouse(x, y, velocity)
 
-    def _act_move_mouse(self, x, y, velocity):
-        distance = math.dist((x, y), pyautogui.position())
+    @staticmethod
+    def _point_on_line(from_point, to_point, percent_through_line) -> float:
+        return from_point + (to_point - from_point) * percent_through_line
+
+    def _act_move_mouse(self, x: int, y: int, velocity: Union[float, int]):
+        current_position = pyautogui.position()
+
+        distance = math.dist((x, y), current_position)
         duration = distance / velocity
-        logger.debug(f"start moving: ({x}, {y}), {duration}")
-        pyautogui.moveTo(x, y, duration)
-        logger.debug("stop moving")
+
+        n_steps = max(abs(current_position.x - x), abs(current_position.y - y))
+
+        step_sleep_time = duration / n_steps
+        if step_sleep_time < pyautogui.MINIMUM_SLEEP:
+            # Need to remove steps until the sleep time is at least pyautogui.MINIMUM_SLEEP
+            n_steps = math.floor(duration / pyautogui.MINIMUM_SLEEP)
+            step_sleep_time = pyautogui.MINIMUM_SLEEP
+
+        steps = [
+            (
+                math.ceil(self._point_on_line(current_position.x, x, i / n_steps)),
+                math.ceil(self._point_on_line(current_position.y, y, i / n_steps)),
+            )
+            for i in range(n_steps)
+        ]
+
+        if steps[-1] != (x, y):
+            steps.append((x, y))
+
+        logger.debug(f"start moving: {current_position} -> ({x}, {y}), {duration:0.5f}, {len(steps)}")
+        for i, (step_x, step_y) in enumerate(steps):
+            if i != 0:
+                try:
+                    self.queue.get(True, step_sleep_time)
+                except queue.Empty:
+                    pass
+
+            pyautogui_module._moveTo(step_x, step_y)
+        logger.debug(f"stop moving")
 
     def move_to(
         self,
