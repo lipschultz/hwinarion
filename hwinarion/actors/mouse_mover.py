@@ -35,6 +35,57 @@ import pyautogui
 PositionType = Union[Tuple[int, int], pyautogui.Point]
 TweenType = Callable[[Union[int, float]], float]
 
+
+class MouseMoveActor:
+    def __init__(self, from_position: PositionType, to_position: PositionType, velocity: Union[float, int]):
+        self.from_position = (
+            from_position
+            if isinstance(from_position, pyautogui.Point)
+            else pyautogui.Point(from_position[0], from_position[1])
+        )
+        self.to_position = (
+            to_position if isinstance(to_position, pyautogui.Point) else pyautogui.Point(to_position[0], to_position[1])
+        )
+        self.velocity = velocity
+
+        distance = math.dist(self.from_position, self.to_position)
+        duration = distance / self.velocity
+
+        n_steps = max(abs(self.from_position.x - self.to_position.x), abs(self.from_position.y - self.to_position.y))
+
+        self.step_sleep_time = duration / n_steps
+        if self.step_sleep_time < pyautogui.MINIMUM_SLEEP:
+            # Need to remove steps until the sleep time is at least pyautogui.MINIMUM_SLEEP
+            n_steps = math.floor(duration / pyautogui.MINIMUM_SLEEP)
+            self.step_sleep_time = pyautogui.MINIMUM_SLEEP
+
+        self.steps = [
+            (
+                math.ceil(self._point_on_line(self.from_position.x, self.to_position.x, i / n_steps)),
+                math.ceil(self._point_on_line(self.from_position.y, self.to_position.y, i / n_steps)),
+            )
+            for i in range(n_steps)
+        ]
+
+        if self.steps[-1] != (self.to_position.x, self.to_position.y):
+            self.steps.append((self.to_position.x, self.to_position.y))
+
+    @staticmethod
+    def _point_on_line(from_point, to_point, percent_through_line) -> float:
+        return from_point + (to_point - from_point) * percent_through_line
+
+    def step(self):
+        # Take the first action immediately
+        pyautogui_module._moveTo(self.steps[0][0], self.steps[0][1])
+        for step_x, step_y in self.steps[1:]:
+            yield self.step_sleep_time
+            pyautogui_module._moveTo(step_x, step_y)
+
+
+class MouseStopActor:
+    pass
+
+
 """
 It may look like this class can be cleaned up and refactored to work better.  However, Xlib (a library that pyautogui
 uses for doing mouse/screen stuff on X11 doesn't work well in threaded or multiprocessing environments.  It only seems
@@ -55,6 +106,7 @@ class MouseMover:
         """
         Start the actor in a separate process.
         """
+        logger.info(f"Starting actor")
         if self._proc is not None:
             if self._proc.is_alive():
                 raise Exception(f"{self.__class__.__name__} is already running")
@@ -71,6 +123,7 @@ class MouseMover:
 
         Returns ``True`` if the process stopped or ``timeout`` was ``None``, ``False`` otherwise.
         """
+        logger.info(f"Stopping actor")
         self._proc.kill()
         self._proc.join()
         return_value = not self._proc.is_alive()
@@ -90,6 +143,7 @@ class MouseMover:
         """
         The method that listens for actions on the queue and acts on them.
         """
+        action = None
         while (requested_action := self.queue.get()) is not None:
             action, *args = requested_action
             if action == "to":
@@ -113,46 +167,18 @@ class MouseMover:
 
                 velocity = args
 
-            self._act_move_mouse(x, y, velocity)
+            action = MouseMoveActor(pyautogui.position(), (x, y), velocity)
+            self._act_move_mouse(action)
 
-    @staticmethod
-    def _point_on_line(from_point, to_point, percent_through_line) -> float:
-        return from_point + (to_point - from_point) * percent_through_line
-
-    def _act_move_mouse(self, x: int, y: int, velocity: Union[float, int]):
-        current_position = pyautogui.position()
-
-        distance = math.dist((x, y), current_position)
-        duration = distance / velocity
-
-        n_steps = max(abs(current_position.x - x), abs(current_position.y - y))
-
-        step_sleep_time = duration / n_steps
-        if step_sleep_time < pyautogui.MINIMUM_SLEEP:
-            # Need to remove steps until the sleep time is at least pyautogui.MINIMUM_SLEEP
-            n_steps = math.floor(duration / pyautogui.MINIMUM_SLEEP)
-            step_sleep_time = pyautogui.MINIMUM_SLEEP
-
-        steps = [
-            (
-                math.ceil(self._point_on_line(current_position.x, x, i / n_steps)),
-                math.ceil(self._point_on_line(current_position.y, y, i / n_steps)),
-            )
-            for i in range(n_steps)
-        ]
-
-        if steps[-1] != (x, y):
-            steps.append((x, y))
-
-        logger.debug(f"start moving: {current_position} -> ({x}, {y}), {duration:0.5f}, {len(steps)}")
-        for i, (step_x, step_y) in enumerate(steps):
-            if i != 0:
-                try:
-                    self.queue.get(True, step_sleep_time)
-                except queue.Empty:
-                    pass
-
-            pyautogui_module._moveTo(step_x, step_y)
+    def _act_move_mouse(self, action):
+        action_steps = action.step()
+        for sleep_time in action_steps:
+            try:
+                requested_action = self.queue.get(True, sleep_time)
+                logger.debug(f"action requested: {requested_action}")
+                break
+            except queue.Empty:
+                pass
         logger.debug(f"stop moving")
 
     def move_to(
@@ -176,4 +202,4 @@ class MouseMover:
         self.queue.put(("down", velocity))
 
     def stop_moving(self):
-        pass
+        self.queue.put(("stop",))
