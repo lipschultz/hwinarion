@@ -7,10 +7,9 @@ import multiprocessing
 import platform
 import queue
 import sys
-from typing import Callable, Union, Tuple
+from typing import Callable, Union, Tuple, Iterator
 
 from loguru import logger
-
 
 # pyautogui.moveTo is too slow, so instead of using the public function, using the lower-level platform module which is
 # fast enough.
@@ -33,21 +32,29 @@ import pyautogui
 
 
 PositionType = Union[Tuple[int, int], pyautogui.Point]
+VelocityType = Union[float, int]
 TweenType = Callable[[Union[int, float]], float]
 
 
-class MouseMoveActor:
-    def __init__(self, from_position: PositionType, to_position: PositionType, velocity: Union[float, int]):
-        self.from_position = (
-            from_position
-            if isinstance(from_position, pyautogui.Point)
-            else pyautogui.Point(from_position[0], from_position[1])
-        )
-        self.to_position = (
-            to_position if isinstance(to_position, pyautogui.Point) else pyautogui.Point(to_position[0], to_position[1])
-        )
+class BaseAction:
+    def setup(self) -> None:
+        pass
+
+    def step(self) -> Iterator[float]:
+        raise NotImplementedError
+
+
+class MouseMoveAction(BaseAction):
+    def __init__(self, velocity: Union[float, int]):
         self.velocity = velocity
 
+        self.to_position = None
+        self.from_position = None
+        self.step_sleep_time = None
+        self.steps = None
+
+    def setup(self) -> None:
+        self.from_position = pyautogui.position()
         distance = math.dist(self.from_position, self.to_position)
         duration = distance / self.velocity
 
@@ -74,7 +81,7 @@ class MouseMoveActor:
     def _point_on_line(from_point, to_point, percent_through_line) -> float:
         return from_point + (to_point - from_point) * percent_through_line
 
-    def step(self):
+    def step(self) -> Iterator[float]:
         # Take the first action immediately
         pyautogui_module._moveTo(self.steps[0][0], self.steps[0][1])
         for step_x, step_y in self.steps[1:]:
@@ -82,8 +89,61 @@ class MouseMoveActor:
             pyautogui_module._moveTo(step_x, step_y)
 
 
-class MouseStopActor:
-    pass
+class MouseToAction(MouseMoveAction):
+    def __init__(self, to_position: PositionType, velocity: Union[float, int]):
+        super().__init__(velocity)
+        self.to_position = (
+            to_position if isinstance(to_position, pyautogui.Point) else pyautogui.Point(to_position[0], to_position[1])
+        )
+
+
+class MouseLeftAction(MouseMoveAction):
+    def __init__(self, velocity: VelocityType):
+        super().__init__(velocity)
+
+    def setup(self) -> None:
+        x = 0
+        y = pyautogui.position().y
+        self.to_position = pyautogui.Point(x, y)
+        super().setup()
+
+
+class MouseUpAction(MouseMoveAction):
+    def __init__(self, velocity: VelocityType):
+        super().__init__(velocity)
+
+    def setup(self) -> None:
+        x = pyautogui.position().x
+        y = 0
+        self.to_position = pyautogui.Point(x, y)
+        super().setup()
+
+
+class MouseRightAction(MouseMoveAction):
+    def __init__(self, velocity: VelocityType):
+        super().__init__(velocity)
+
+    def setup(self) -> None:
+        x = pyautogui.size().x
+        y = pyautogui.position().y
+        self.to_position = pyautogui.Point(x, y)
+        super().setup()
+
+
+class MouseDownAction(MouseMoveAction):
+    def __init__(self, velocity: VelocityType):
+        super().__init__(velocity)
+
+    def setup(self) -> None:
+        x = pyautogui.position().x
+        y = pyautogui.size().y
+        self.to_position = pyautogui.Point(x, y)
+        super().setup()
+
+
+class MouseStopAction(BaseAction):
+    def step(self) -> Iterator[float]:
+        return iter([])
 
 
 """
@@ -145,38 +205,17 @@ class MouseMover:
         """
         action = None
         while (requested_action := self.queue.get()) is not None:
-            action, *args = requested_action
-            if action == "to":
-                x, y, velocity = args
-            else:
-                if action == "left":
-                    x = 0
-                    y = pyautogui.position().y
-                elif action == "right":
-                    x = pyautogui.size().width
-                    y = pyautogui.position().y
-                elif action == "up":
-                    x = pyautogui.position().x
-                    y = 0
-                elif action == "down":
-                    y = pyautogui.size().height
-                    x = pyautogui.position().x
-                else:
-                    logger.error(f"Unrecognized action: {action}, {args}")
-                    continue
-
-                velocity = args
-
-            action = MouseMoveActor(pyautogui.position(), (x, y), velocity)
-            self._act_move_mouse(action)
+            requested_action.setup()
+            if isinstance(requested_action, MouseMoveAction):
+                self._act_move_mouse(requested_action)
 
     def _act_move_mouse(self, action):
-        action_steps = action.step()
-        for sleep_time in action_steps:
+        for sleep_time in action.step():
             try:
                 requested_action = self.queue.get(True, sleep_time)
                 logger.debug(f"action requested: {requested_action}")
-                break
+                if isinstance(requested_action, MouseStopAction):
+                    break
             except queue.Empty:
                 pass
         logger.debug(f"stop moving")
@@ -187,19 +226,19 @@ class MouseMover:
         y: Union[int, float],
         velocity: float = SPEED_NORMAL,
     ) -> None:
-        self.queue.put(("to", x, y, velocity))
+        self.queue.put(MouseToAction((x, y), velocity))
 
     def move_left(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(("left", velocity))
+        self.queue.put(MouseLeftAction(velocity))
 
     def move_right(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(("right", velocity))
+        self.queue.put(MouseRightAction(velocity))
 
     def move_up(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(("up", velocity))
+        self.queue.put(MouseUpAction(velocity))
 
     def move_down(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(("down", velocity))
+        self.queue.put(MouseDownAction(velocity))
 
     def stop_moving(self):
-        self.queue.put(("stop",))
+        self.queue.put(MouseStopAction())
