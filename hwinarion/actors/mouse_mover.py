@@ -124,7 +124,7 @@ class MouseRightAction(MouseMoveAction):
         super().__init__(velocity)
 
     def setup(self) -> None:
-        x = pyautogui.size().x
+        x = pyautogui.size().width
         y = pyautogui.position().y
         self.to_position = pyautogui.Point(x, y)
         super().setup()
@@ -136,7 +136,7 @@ class MouseDownAction(MouseMoveAction):
 
     def setup(self) -> None:
         x = pyautogui.position().x
-        y = pyautogui.size().y
+        y = pyautogui.size().height
         self.to_position = pyautogui.Point(x, y)
         super().setup()
 
@@ -203,22 +203,19 @@ class MouseMover:
         """
         The method that listens for actions on the queue and acts on them.
         """
-        action = None
         while (requested_action := self.queue.get()) is not None:
-            requested_action.setup()
-            if isinstance(requested_action, MouseMoveAction):
-                self._act_move_mouse(requested_action)
-
-    def _act_move_mouse(self, action):
-        for sleep_time in action.step():
-            try:
-                requested_action = self.queue.get(True, sleep_time)
-                logger.debug(f"action requested: {requested_action}")
-                if isinstance(requested_action, MouseStopAction):
-                    break
-            except queue.Empty:
-                pass
-        logger.debug(f"stop moving")
+            action = requested_action
+            action.setup()
+            if isinstance(action, MouseMoveAction):
+                for sleep_time in action.step():
+                    try:
+                        requested_action = self.queue.get(True, sleep_time)
+                        logger.debug(f"action requested: {requested_action}")
+                        if isinstance(requested_action, MouseStopAction):
+                            break
+                    except queue.Empty:
+                        pass
+                logger.debug(f"stop moving")
 
     def move_to(
         self,
