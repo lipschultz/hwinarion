@@ -53,6 +53,8 @@ class MouseMoveAction(BaseAction):
         self.step_sleep_time = None
         self.steps = None
 
+        self._iter = None
+
     def setup(self) -> None:
         self.from_position = pyautogui.position()
         distance = math.dist(self.from_position, self.to_position)
@@ -80,6 +82,19 @@ class MouseMoveAction(BaseAction):
     @staticmethod
     def _point_on_line(from_point, to_point, percent_through_line) -> float:
         return from_point + (to_point - from_point) * percent_through_line
+
+    def __iter__(self):
+        # Take the first action immediately
+        pyautogui_module._moveTo(self.steps[0][0], self.steps[0][1])
+        for step_x, step_y in self.steps[1:]:
+            yield self.step_sleep_time
+            pyautogui_module._moveTo(step_x, step_y)
+
+    def __next__(self):
+        if self._iter is None:
+            self._iter = iter(self)
+
+        return next(self._iter)
 
     def step(self) -> Iterator[float]:
         # Take the first action immediately
@@ -203,19 +218,36 @@ class MouseMover:
         """
         The method that listens for actions on the queue and acts on them.
         """
-        while (requested_action := self.queue.get()) is not None:
-            action = requested_action
-            action.setup()
-            if isinstance(action, MouseMoveAction):
-                for sleep_time in action.step():
-                    try:
-                        requested_action = self.queue.get(True, sleep_time)
-                        logger.debug(f"action requested: {requested_action}")
-                        if isinstance(requested_action, MouseStopAction):
-                            break
-                    except queue.Empty:
-                        pass
-                logger.debug(f"stop moving")
+
+        action = None
+        sleep_time = 0
+        while True:
+            if action is None:
+                requested_action = self.queue.get()
+            else:
+                try:
+                    requested_action = self.queue.get(True, sleep_time)
+                except queue.Empty:
+                    requested_action = None
+
+            if requested_action is not None:
+                requested_action.setup()
+
+            if isinstance(requested_action, MouseStopAction):
+                if isinstance(action, MouseMoveAction):
+                    action = None
+                    sleep_time = None
+            elif isinstance(requested_action, MouseMoveAction):
+                action = requested_action
+
+            if action is not None:
+                try:
+                    sleep_time = next(action)
+                except StopIteration:
+                    sleep_time = None
+
+                if sleep_time is None:
+                    action = None
 
     def move_to(
         self,
