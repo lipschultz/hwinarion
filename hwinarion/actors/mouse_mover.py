@@ -231,6 +231,7 @@ class MouseMover:
                     requested_action = None
 
             if requested_action is not None:
+                logger.info(f"Received request: {requested_action}")
                 requested_action.setup()
 
             if isinstance(requested_action, MouseStopAction):
@@ -241,6 +242,7 @@ class MouseMover:
                 action = requested_action
 
             if action is not None:
+                logger.info(f"Taking action: {action}")
                 try:
                     sleep_time = next(action)
                 except StopIteration:
