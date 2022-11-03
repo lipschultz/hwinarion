@@ -36,7 +36,7 @@ VelocityType = Union[float, int]
 TweenType = Callable[[Union[int, float]], float]
 
 
-class BaseAction:
+class BaseRequest:
     def setup(self) -> None:
         pass
 
@@ -44,7 +44,7 @@ class BaseAction:
         raise NotImplementedError
 
 
-class MouseMoveAction(BaseAction):
+class MouseMoveRequest(BaseRequest):
     def __init__(self, velocity: Union[float, int]):
         self.velocity = velocity
 
@@ -104,7 +104,7 @@ class MouseMoveAction(BaseAction):
             pyautogui_module._moveTo(step_x, step_y)
 
 
-class MouseToAction(MouseMoveAction):
+class MouseToRequest(MouseMoveRequest):
     def __init__(self, to_position: PositionType, velocity: Union[float, int]):
         super().__init__(velocity)
         self.to_position = (
@@ -112,7 +112,7 @@ class MouseToAction(MouseMoveAction):
         )
 
 
-class MouseLeftAction(MouseMoveAction):
+class MouseLeftRequest(MouseMoveRequest):
     def __init__(self, velocity: VelocityType):
         super().__init__(velocity)
 
@@ -123,7 +123,7 @@ class MouseLeftAction(MouseMoveAction):
         super().setup()
 
 
-class MouseUpAction(MouseMoveAction):
+class MouseUpRequest(MouseMoveRequest):
     def __init__(self, velocity: VelocityType):
         super().__init__(velocity)
 
@@ -134,7 +134,7 @@ class MouseUpAction(MouseMoveAction):
         super().setup()
 
 
-class MouseRightAction(MouseMoveAction):
+class MouseRightRequest(MouseMoveRequest):
     def __init__(self, velocity: VelocityType):
         super().__init__(velocity)
 
@@ -145,7 +145,7 @@ class MouseRightAction(MouseMoveAction):
         super().setup()
 
 
-class MouseDownAction(MouseMoveAction):
+class MouseDownRequest(MouseMoveRequest):
     def __init__(self, velocity: VelocityType):
         super().__init__(velocity)
 
@@ -156,7 +156,7 @@ class MouseDownAction(MouseMoveAction):
         super().setup()
 
 
-class MouseStopAction(BaseAction):
+class MouseStopRequest(BaseRequest):
     def step(self) -> Iterator[float]:
         return iter([])
 
@@ -234,15 +234,15 @@ class MouseMover:
                 logger.info(f"Received request: {requested_action}")
                 requested_action.setup()
 
-            if isinstance(requested_action, MouseStopAction):
-                if isinstance(action, MouseMoveAction):
+            if isinstance(requested_action, MouseStopRequest):
+                if isinstance(action, MouseMoveRequest):
                     action = None
                     sleep_time = None
-            elif isinstance(requested_action, MouseMoveAction):
+            elif isinstance(requested_action, MouseMoveRequest):
                 action = requested_action
 
             if action is not None:
-                logger.info(f"Taking action: {action}")
+                logger.debug(f"Taking action: {action}")
                 try:
                     sleep_time = next(action)
                 except StopIteration:
@@ -257,19 +257,19 @@ class MouseMover:
         y: Union[int, float],
         velocity: float = SPEED_NORMAL,
     ) -> None:
-        self.queue.put(MouseToAction((x, y), velocity))
+        self.queue.put(MouseToRequest((x, y), velocity))
 
     def move_left(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(MouseLeftAction(velocity))
+        self.queue.put(MouseLeftRequest(velocity))
 
     def move_right(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(MouseRightAction(velocity))
+        self.queue.put(MouseRightRequest(velocity))
 
     def move_up(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(MouseUpAction(velocity))
+        self.queue.put(MouseUpRequest(velocity))
 
     def move_down(self, velocity: float = SPEED_NORMAL) -> None:
-        self.queue.put(MouseDownAction(velocity))
+        self.queue.put(MouseDownRequest(velocity))
 
     def stop_moving(self):
-        self.queue.put(MouseStopAction())
+        self.queue.put(MouseStopRequest())
