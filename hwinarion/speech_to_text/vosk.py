@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Union
+from typing import Iterable, Union
 
 from vosk import KaldiRecognizer, Model
 
@@ -13,6 +13,8 @@ class VoskSpeechToText(BaseSpeechToText):
     FRAME_RATE = 16_000
     BIT_DEPTH = 16
     N_CHANNELS = 1
+
+    UNRECOGNIZED_TOKEN = "[unk]"
 
     def __init__(
         self,
@@ -29,6 +31,13 @@ class VoskSpeechToText(BaseSpeechToText):
 
         self._model = Model(self.model_path)
         self._recognizer = KaldiRecognizer(self._model, self.frame_rate)
+
+    def copy(self) -> "VoskSpeechToText":
+        """
+        Return a copy of the object.  Changes to the original will not affect the copy, nor will changes to the copy
+        affect the original.
+        """
+        return VoskSpeechToText(self.model_path, self.frame_rate, self.bit_depth, self.n_channels)
 
     @property
     def sample_width(self) -> int:
@@ -76,3 +85,14 @@ class VoskSpeechToText(BaseSpeechToText):
             ],
             result,
         )
+
+    def restrict_vocabulary_to(self, vocabulary: Iterable[str], include_unrecognized_token: bool = True):
+        """
+        Restrict the model to only use the provided vocabulary.
+
+        If `include_unrecognized_token` is True (default), then include the "unrecognized" token (`[unk]')
+        """
+        vocabulary = set(vocabulary)
+        if include_unrecognized_token:
+            vocabulary |= {"[unk]"}
+        self._recognizer.SetGrammar(json.dumps(list(vocabulary)))
