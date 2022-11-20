@@ -86,7 +86,7 @@ class VoskSpeechToText(BaseSpeechToText):
             result,
         )
 
-    def restrict_vocabulary_to(self, vocabulary: Iterable[str], include_unrecognized_token: bool = True):
+    def restrict_vocabulary_to(self, vocabulary: Iterable[str], include_unrecognized_token: bool = True) -> None:
         """
         Restrict the model to only use the provided vocabulary.
 

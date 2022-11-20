@@ -6,10 +6,13 @@ import math
 import multiprocessing
 import platform
 import queue
+import re
 import sys
-from typing import Callable, Union, Tuple, Iterator
+from typing import Callable, Iterator, List, Tuple, Union
 
 from loguru import logger
+
+from hwinarion.dispatcher import BaseAction
 
 # pyautogui.moveTo is too slow, so instead of using the public function, using the lower-level platform module which is
 # fast enough.
@@ -34,6 +37,7 @@ import pyautogui
 PositionType = Union[Tuple[int, int], pyautogui.Point]
 VelocityType = Union[float, int]
 TweenType = Callable[[Union[int, float]], float]
+TimeDurationType = Union[float, int]
 
 
 class BaseRequest:
@@ -161,17 +165,32 @@ class MouseStopRequest(BaseRequest):
         return iter([])
 
 
+class MouseClickRequest(BaseRequest):
+    def __init__(self, button, n_clicks: int):
+        assert isinstance(n_clicks, int) and n_clicks > 0
+
+        self.button = button
+        self.n_clicks = n_clicks
+
+    def step(self) -> Iterator[float]:
+        pyautogui.click(button=self.button, clicks=self.n_clicks)
+        return iter([])
+
+
 """
 It may look like this class can be cleaned up and refactored to work better.  However, Xlib (a library that pyautogui
 uses for doing mouse/screen stuff on X11 doesn't work well in threaded or multiprocessing environments.  It only seems
 to work well when it's used in only one thread/process.  Therefore, all calls to pyautogui are stuffed into one process.
-THe unused Xlib.threaded import is also meant to help resolve this problem.  I'm not sure it does, but maybe it helps?
+The unused Xlib.threaded import is also meant to help resolve this problem.  I'm not sure it does, but maybe it helps?
 """
 
 
 class MouseMover:
-    SPEED_NORMAL = 367
-    SPEED_FAST = 734
+    SPEED_VERY_SLOW = 122
+    SPEED_SLOW = 183
+    SPEED_NORMAL = 244
+    SPEED_FAST = 367
+    SPEED_VERY_FAST = 734
 
     def __init__(self):
         self._proc = None
@@ -273,3 +292,98 @@ class MouseMover:
 
     def stop_moving(self):
         self.queue.put(MouseStopRequest())
+
+    def click(self, button: str, n_clicks: int):
+        self.queue.put(MouseClickRequest(button, n_clicks))
+
+
+class MouseAction(BaseAction):
+    def __init__(self):
+        super().__init__("mouse")
+        self.mouse_mover = MouseMover()
+        self.mouse_mover.start()
+        self.speed_mapping = {
+            "very slow": MouseMover.SPEED_VERY_SLOW,
+            "slow": MouseMover.SPEED_SLOW,
+            None: MouseMover.SPEED_NORMAL,
+            "fast": MouseMover.SPEED_FAST,
+            "very fast": MouseMover.SPEED_VERY_FAST,
+        }
+
+    @property
+    def recognized_words(self) -> List[str]:
+        return [
+            "move",
+            "mouse",
+            "left",
+            "right",
+            "up",
+            "down",
+            "very",
+            "fast",
+            "slow",
+            "stop",
+            "double",
+            "triple",
+            "middle",
+            "click",
+        ]
+
+    def parse_text(self, text: str) -> Tuple:
+        move_parse = re.fullmatch(
+            r"move\s+mouse\s+(?P<direction>left|right|up|down)(\s+(?P<speed>(?:very\s+)?(?:fast|slow)))?",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if move_parse:
+            return "move", move_parse["direction"].lower(), move_parse["speed"].lower() if move_parse["speed"] else None
+
+        if re.fullmatch(r"stop\s+mouse", text, flags=re.IGNORECASE):
+            return ("stop",)
+
+        click_parse = re.fullmatch(
+            r"(?P<n_clicks>double|triple)?\s*(?:(?P<button>left|right|middle)[- ]mouse)?\s*click",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if click_parse:
+            button = click_parse["button"].lower() if click_parse["button"] else "left"
+            if click_parse["n_clicks"] is None:
+                n_clicks = 1
+            elif click_parse["n_clicks"] == "double":
+                n_clicks = 2
+            elif click_parse["n_clicks"] == "triple":
+                n_clicks = 3
+            else:
+                n_clicks = 1
+            return "click", button, n_clicks
+
+    def act(self, text: str) -> bool:
+        parsed_text = self.parse_text(text)
+        if parsed_text:
+            action, *parameters = parsed_text
+
+            if action == "stop":
+                self.mouse_mover.stop_moving()
+                return True
+            elif action == "move":
+                direction, speed = parameters
+                speed = self.speed_mapping[speed]
+                if direction == "left":
+                    move_function = self.mouse_mover.move_left
+                elif direction == "right":
+                    move_function = self.mouse_mover.move_right
+                elif direction == "down":
+                    move_function = self.mouse_mover.move_down
+                elif direction == "up":
+                    move_function = self.mouse_mover.move_up
+                else:
+                    raise KeyError(f"Unrecognized direction: {direction}")
+
+                move_function(speed)
+                return True
+            elif action == "click":
+                button, n_clicks = parameters
+                self.mouse_mover.click(button, n_clicks)
+                return True
+        return False

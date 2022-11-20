@@ -20,6 +20,7 @@ black = "^22.10.0"
 pylint = "^2.15.3"
 isort = "^5.10.1"
 pytest = "^7.1.3"
+coverage = "^6.5.0"
 
 
 [tool.poetry.group.vosk.dependencies]

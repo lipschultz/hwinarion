@@ -35,11 +35,13 @@ class BaseDispatcher:
         logger.debug("Running transcriber")
         while bg_listener.is_listening or not bg_listener.queue.empty():
             audio = bg_listener.get()
-            yield self.speech_to_text.transcribe_audio(audio)
+            transcribed_text = self.speech_to_text.transcribe_audio(audio)
+            if len(transcribed_text) > 0:
+                yield transcribed_text
 
     def run(self, listener_kwargs: Optional[dict] = None) -> None:
         for text in self._get_transcribed_text(listener_kwargs):
-            logger.debug(f"Got text: {text}")
+            logger.debug(f"Got text (len={len(text)}): {text}")
             for action in self.actions:
                 if action.act(text):
                     logger.info(f"{action} consumed {text}")
