@@ -405,7 +405,7 @@ class BaseAudioSource:
         object.
         """
         if n_seconds is not None:
-            if not isinstance(n_seconds, TimeType) or n_seconds <= 0:
+            if not isinstance(n_seconds, (int, float)) or n_seconds <= 0:
                 raise TypeError(f"n_seconds must be None or a number greater than zero, got {n_seconds!r}")
 
         if n_seconds is None:

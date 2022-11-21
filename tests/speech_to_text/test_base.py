@@ -55,7 +55,7 @@ def test_transcript_segment_duration(start_time, end_time, expected_duration):
     ],
 )
 def test_detailed_transcripts_best_transcript(transcripts, expected_best_transcript):
-    subject = base.DetailedTranscripts(transcripts)
+    subject = base.DetailedTranscripts(transcripts, None)
 
     actual_best_transcript = subject.best_transcript
 
@@ -70,7 +70,8 @@ def test_base_speech_to_text_getting_best_transcribed_audio():
             [
                 base.DetailedTranscript("any transcript 1", 0.99, None),
                 base.DetailedTranscript("any transcript 2", 0.89, None),
-            ]
+            ],
+            None,
         )
     )
 
