@@ -8,7 +8,7 @@ import platform
 import queue
 import re
 import sys
-from typing import Callable, Iterator, List, Tuple, Union
+from typing import Callable, Iterator, List, Tuple, Union, Optional
 
 from loguru import logger
 
@@ -19,19 +19,19 @@ from hwinarion.dispatcher import BaseAction
 if sys.platform.startswith("java"):
     # from . import _pyautogui_java as pyautogui_module
     raise NotImplementedError("Jython is not yet supported by PyAutoGUI.")
-elif sys.platform == "darwin":
+if sys.platform == "darwin":
     from pyautogui import _pyautogui_osx as pyautogui_module
 elif sys.platform == "win32":
     from pyautogui import _pyautogui_win as pyautogui_module
 elif platform.system() == "Linux":
     import Xlib.threaded  # pylint: disable=unused-import
-    from pyautogui import _pyautogui_x11 as pyautogui_module
+    from pyautogui import _pyautogui_x11 as pyautogui_module  # pylint: disable=ungrouped-imports
 else:
-    raise NotImplementedError("Your platform (%s) is not supported by PyAutoGUI." % (platform.system()))
+    raise NotImplementedError(f"Your platform {platform.system()} is not supported by PyAutoGUI.")
 
 
 # This needs to be imported after Xlib.threaded in Linux, so it's after the imports above
-import pyautogui
+import pyautogui  # pylint: disable=wrong-import-position,wrong-import-order
 
 
 PositionType = Union[Tuple[int, int], pyautogui.Point]
@@ -200,7 +200,7 @@ class MouseMover:
         """
         Start the actor in a separate process.
         """
-        logger.info(f"Starting actor")
+        logger.info("Starting actor")
         if self._proc is not None:
             if self._proc.is_alive():
                 raise Exception(f"{self.__class__.__name__} is already running")
@@ -217,7 +217,7 @@ class MouseMover:
 
         Returns ``True`` if the process stopped or ``timeout`` was ``None``, ``False`` otherwise.
         """
-        logger.info(f"Stopping actor")
+        logger.info("Stopping actor")
         self._proc.kill()
         self._proc.join()
         return_value = not self._proc.is_alive()
@@ -328,14 +328,15 @@ class MouseAction(BaseAction):
             "click",
         ]
 
-    def parse_text(self, text: str) -> Tuple:
+    def parse_text(self, text: str) -> Optional[Tuple]:
         move_parse = re.fullmatch(
             r"move\s+mouse\s+(?P<direction>left|right|up|down)(\s+(?P<speed>(?:very\s+)?(?:fast|slow)))?",
             text,
             flags=re.IGNORECASE,
         )
         if move_parse:
-            return "move", move_parse["direction"].lower(), move_parse["speed"].lower() if move_parse["speed"] else None
+            speed = move_parse["speed"].lower() if move_parse["speed"] else None
+            return "move", move_parse["direction"].lower(), speed
 
         if re.fullmatch(r"stop\s+mouse", text, flags=re.IGNORECASE):
             return ("stop",)
@@ -357,6 +358,8 @@ class MouseAction(BaseAction):
                 n_clicks = 1
             return "click", button, n_clicks
 
+        return None
+
     def act(self, text: str) -> bool:
         parsed_text = self.parse_text(text)
         if parsed_text:
@@ -365,7 +368,8 @@ class MouseAction(BaseAction):
             if action == "stop":
                 self.mouse_mover.stop_moving()
                 return True
-            elif action == "move":
+
+            if action == "move":
                 direction, speed = parameters
                 speed = self.speed_mapping[speed]
                 if direction == "left":
@@ -381,8 +385,10 @@ class MouseAction(BaseAction):
 
                 move_function(speed)
                 return True
-            elif action == "click":
+
+            if action == "click":
                 button, n_clicks = parameters
                 self.mouse_mover.click(button, n_clicks)
                 return True
+
         return False

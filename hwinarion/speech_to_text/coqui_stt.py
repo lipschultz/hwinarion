@@ -10,7 +10,7 @@ from hwinarion.speech_to_text.base import DetailedTranscript, DetailedTranscript
 
 
 class CoquiSpeechToText(BaseSpeechToText):
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         model_path: Union[str, Path],
         beam_width: Optional[int] = None,

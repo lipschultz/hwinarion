@@ -6,7 +6,8 @@ from hwinarion.audio.base import AudioSample
 
 class NoTranscriptionError(Exception):
     def __init__(self, msg=None, audio_file=None):
-        super().__init__(msg, audio_file)
+        super().__init__(msg)
+        self.audio_file = audio_file
 
 
 @dataclass(frozen=True)

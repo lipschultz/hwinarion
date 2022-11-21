@@ -28,7 +28,7 @@ class AudioFile(BaseAudioSource):
 
     def read_pydub(self, n_frames: Optional[int]) -> AudioSegment:
         if self.frame_index >= self.__max_audio_frames():
-            raise EOFError(f"Attempted to read past the end of the audio file.")
+            raise EOFError("Attempted to read past the end of the audio file.")
 
         if n_frames is None:
             n_frames = self.__max_audio_frames() - self.frame_index

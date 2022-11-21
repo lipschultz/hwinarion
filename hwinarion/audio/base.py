@@ -11,7 +11,7 @@ from pydub.playback import play
 TimeType = Union[float, int]
 
 
-class AudioSample:
+class AudioSample:  # pylint: disable=too-many-public-methods
     def __init__(self, data: AudioSegment):
         self.data = data
 
@@ -251,7 +251,7 @@ class AudioSample:
     def from_numpy_and_sample(cls, data: np.ndarray, source_sample: "AudioSample") -> "AudioSample":
         return cls.from_numpy(data, source_sample.frame_rate)
 
-    def play(self, delta_gain_dB: float = None) -> None:
+    def play(self, delta_gain_dB: float = None) -> None:  # pylint: disable=invalid-name
         """
         Play the audio sample.
 
@@ -371,7 +371,7 @@ class AudioSample:
         """
         Produce a plot with two sub-graphs, one for the amplitude and the other for the spectrogram.
         """
-        fig, (ax_amplitude, ax_spectrogram) = plt.subplots(nrows=2)
+        _, (ax_amplitude, ax_spectrogram) = plt.subplots(nrows=2)
 
         self.plot_amplitude(axis=ax_amplitude)
         self.plot_spectrogram(axis=ax_spectrogram)

@@ -40,8 +40,7 @@ class BackgroundListener:
         if self._thread is not None:
             if self._thread.is_alive():
                 raise ListenerRunningError("Background listener is already running")
-            else:
-                self.stop()
+            self.stop()
         self._thread = threading.Thread(target=self._listen)
         self._thread.daemon = True
         self._thread.start()
