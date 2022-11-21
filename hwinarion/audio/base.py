@@ -266,23 +266,29 @@ class AudioSample:  # pylint: disable=too-many-public-methods
     def export(self, filename, **kwargs) -> io.BufferedRandom:
         return self.data.export(filename, **kwargs)
 
-    def remove_dc_offset(self, rolling: bool = False) -> "AudioSample":
-        if not rolling:
-            return AudioSample(self.data.remove_dc_offset())
+    def remove_dc_offset(self, window_size: Optional[int] = 15) -> "AudioSample":
+        """
+        Removes any DC offset in the audio.
 
-        # This should work, but I lose half the audio when converting the numpy array back into an AudioSegment
-        window_size = 15
+        If ``window_size`` is an integer (default is 15), then will look at that many consecutive frames to determine
+        the local DC offset, then adjust the center value by that offset.
+
+        If ``window_size`` is None, then remove the DC offset for the entire sample at once.
+        """
+        if window_size is None:
+            return AudioSample(self.data.remove_dc_offset())
 
         samples = self.to_numpy()
         view = sliding_window_view(samples, window_size)
         frame_averages = np.concatenate(
             (
-                view.mean(axis=-1).astype(int),
+                view.mean(axis=-1).astype(self.to_numpy().dtype),
                 [int(samples[-(window_size - 1) :].mean())] * (window_size - 1),
             )
         )
 
         adjusted = samples - frame_averages
+        adjusted = adjusted.astype(self.to_numpy().dtype)
         return AudioSample.from_numpy_and_sample(adjusted, self)
 
     def plot_amplitude(
