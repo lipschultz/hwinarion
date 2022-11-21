@@ -261,7 +261,6 @@ class MouseMover:
                 action = requested_action
 
             if action is not None:
-                logger.debug(f"Taking action: {action}")
                 try:
                     sleep_time = next(action)
                 except StopIteration:
