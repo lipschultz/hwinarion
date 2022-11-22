@@ -291,6 +291,12 @@ class AudioSample:  # pylint: disable=too-many-public-methods
         adjusted = adjusted.astype(self.to_numpy().dtype)
         return AudioSample.from_numpy_and_sample(adjusted, self)
 
+    def strip_silence(self, amplitude_threshold: int = 1) -> "AudioSample":
+        is_loud_frame = np.where((np.absolute(self.to_numpy()) < amplitude_threshold) == False)[0]
+        first_loud_frame = is_loud_frame[0]
+        last_loud_frame = is_loud_frame[-1]
+        return self.slice_frame(first_loud_frame, last_loud_frame)
+
     def plot_amplitude(
         self,
         *,
