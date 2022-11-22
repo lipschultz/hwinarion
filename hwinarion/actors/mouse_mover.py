@@ -41,15 +41,26 @@ TimeDurationType = Union[float, int]
 
 
 class BaseRequest:
+    def __init__(self):
+        self._iter = None
+
     def setup(self) -> None:
         pass
 
-    def step(self) -> Iterator[float]:
+    def __iter__(self) -> Iterator[float]:
         raise NotImplementedError
+
+    def __next__(self):
+        if self._iter is None:
+            self._iter = iter(self)
+
+        return next(self._iter)
 
 
 class MouseMoveRequest(BaseRequest):
     def __init__(self, velocity: Union[float, int]):
+        super().__init__()
+
         self.velocity = velocity
 
         self.to_position = None
@@ -87,20 +98,7 @@ class MouseMoveRequest(BaseRequest):
     def _point_on_line(from_point, to_point, percent_through_line) -> float:
         return from_point + (to_point - from_point) * percent_through_line
 
-    def __iter__(self):
-        # Take the first action immediately
-        pyautogui_module._moveTo(self.steps[0][0], self.steps[0][1])
-        for step_x, step_y in self.steps[1:]:
-            yield self.step_sleep_time
-            pyautogui_module._moveTo(step_x, step_y)
-
-    def __next__(self):
-        if self._iter is None:
-            self._iter = iter(self)
-
-        return next(self._iter)
-
-    def step(self) -> Iterator[float]:
+    def __iter__(self) -> Iterator[float]:
         # Take the first action immediately
         pyautogui_module._moveTo(self.steps[0][0], self.steps[0][1])
         for step_x, step_y in self.steps[1:]:
@@ -161,18 +159,23 @@ class MouseDownRequest(MouseMoveRequest):
 
 
 class MouseStopRequest(BaseRequest):
-    def step(self) -> Iterator[float]:
+    def __init__(self):
+        super().__init__()
+
+    def __iter__(self) -> Iterator[float]:
         return iter([])
 
 
 class MouseClickRequest(BaseRequest):
     def __init__(self, button, n_clicks: int):
+        super().__init__()
+
         assert isinstance(n_clicks, int) and n_clicks > 0
 
         self.button = button
         self.n_clicks = n_clicks
 
-    def step(self) -> Iterator[float]:
+    def __iter__(self) -> Iterator[float]:
         pyautogui.click(button=self.button, clicks=self.n_clicks)
         return iter([])
 
@@ -253,12 +256,12 @@ class MouseMover:
                 logger.info(f"Received request: {requested_action}")
                 requested_action.setup()
 
-            if isinstance(requested_action, MouseStopRequest):
-                if isinstance(action, MouseMoveRequest):
-                    action = None
-                    sleep_time = None
-            elif isinstance(requested_action, MouseMoveRequest):
-                action = requested_action
+                if isinstance(requested_action, MouseStopRequest):
+                    if isinstance(action, MouseMoveRequest):
+                        action = None
+                        sleep_time = None
+                else:
+                    action = requested_action
 
             if action is not None:
                 try:
@@ -342,7 +345,7 @@ class MouseAction(BaseAction):
             return ("stop",)
 
         click_parse = re.fullmatch(
-            r"(?P<n_clicks>double|triple)?\s*(?:(?P<button>left|right|middle)[- ]mouse)?\s*click",
+            r"(?P<n_clicks>double|triple)?\s*(?:(?P<button>left|right|middle)[- ])?mouse\s*click",
             text,
             flags=re.IGNORECASE,
         )
