@@ -304,9 +304,10 @@ class AudioSample:  # pylint: disable=too-many-public-methods
         axis=None,
         highlight_regions: Iterable[Tuple[TimeType, TimeType]] = (),
         normalize_amplitude: bool = False,
+        x_axis: str = "time",
     ) -> None:
         """
-        Plot the amplitude of the audio sample in a matplotlib graph.  The x-axis is time in seconds.
+        Plot the amplitude of the audio sample in a matplotlib graph.
 
         ``title`` is the title put on the graph, or ``None`` (default) to have no title.
 
@@ -319,9 +320,9 @@ class AudioSample:  # pylint: disable=too-many-public-methods
 
         ``normalize_amplitude`` is a bool indicating whether to normalize the amplitude (when ``True``, default) or not
         (when ``False``) before plotting it.
-        """
-        time = np.linspace(0, self.n_seconds, num=len(self))
 
+        ``x_axis`` is whether the x-axis should be in ``time`` (in seconds) or ``frames``.  Default is ``time``.
+        """
         if normalize_amplitude:
             normed_sample = self.normalize()
             samples = normed_sample.to_numpy() / normed_sample.max_possible_amplitude
@@ -334,10 +335,19 @@ class AudioSample:  # pylint: disable=too-many-public-methods
 
         if title is not None:
             axis.set_title(title)
-        axis.set_xlabel("Time (sec)")
+
+        if x_axis == "time":
+            x_ticks = np.linspace(0, self.n_seconds, num=len(self))
+            axis.set_xlabel("Time (sec)")
+        elif x_axis == "frames":
+            x_ticks = np.linspace(0, len(self))
+            axis.set_xlabel("Frames")
+        else:
+            raise ValueError(f"Unrecognized value for x_axis: {x_axis}")
+
         axis.set_ylabel("Amplitude")
 
-        amplitude_line, *_ = axis.plot(time, samples)
+        amplitude_line, *_ = axis.plot(x_ticks, samples)
         amplitude_color = amplitude_line.get_color()
 
         for region in highlight_regions:
