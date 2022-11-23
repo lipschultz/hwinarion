@@ -25,4 +25,4 @@ While PyTorch is listed as a dependency for whisper, you may need to manually in
 
 ### Installing HwinArion
 
-Once you have installed the non-Python dependencies, install HwinArion with `poetry install`.
+Once you have installed the non-Python dependencies and any optional dependencies, install HwinArion with `poetry install`.

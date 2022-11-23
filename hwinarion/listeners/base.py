@@ -93,7 +93,7 @@ class BaseListener:
     def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
         """
         Determine the state of the listener from the ``latest_frame`` that's recorded and all the frames that have been
-        recorded (except for the ``latest_frame``.
+        recorded (except for the ``latest_frame``).
         """
         raise NotImplementedError
 
