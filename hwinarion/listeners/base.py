@@ -31,6 +31,7 @@ class BackgroundListener:
         self._listener_kwargs = listener_kwargs
         self._thread = None
         self.queue = SimpleQueue()
+        self._please_shutdown_thread = False
 
     def start(self) -> None:
         """
@@ -41,6 +42,7 @@ class BackgroundListener:
             if self._thread.is_alive():
                 raise ListenerRunningError("Background listener is already running")
             self.stop()
+        self._please_shutdown_thread = False
         self._thread = threading.Thread(target=self._listen)
         self._thread.daemon = True
         self._thread.start()
@@ -54,6 +56,7 @@ class BackgroundListener:
 
         Returns ``True`` if the listening thread stopped or ``timeout`` was ``None``, ``False`` otherwise.
         """
+        self._please_shutdown_thread = True
         self._thread.join(timeout)
         return_value = timeout is None or not self._thread.is_alive()
         self._thread = None
@@ -70,7 +73,7 @@ class BackgroundListener:
         """
         The method that does the actual listening and adding the audio to a queue.
         """
-        while self.is_listening:
+        while not self._please_shutdown_thread and self.is_listening:
             try:
                 audio = self._listener.listen(**self._listener_kwargs)
                 logger.debug(f"Received audio: {audio}")
