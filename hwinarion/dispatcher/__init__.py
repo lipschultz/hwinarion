@@ -11,9 +11,17 @@ class BaseAction:
         self.name = name
         self.enabled = enabled
 
+    @property
+    def recognized_words(self) -> List[str]:
+        """
+        Return a list of words the action uses.  This property may be used to customize the language model used by the
+        speech-to-text engine.
+        """
+        raise NotImplementedError
+
     def act(self, text: str) -> bool:
         """
-        Return True if the action acted on the text, False otherwise
+        Return True if the action acted on the text, False otherwise.
         """
         raise NotImplementedError
 
