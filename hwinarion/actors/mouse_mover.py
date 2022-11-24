@@ -364,6 +364,9 @@ class MouseAction(BaseAction):
         return None
 
     def act(self, text: str) -> bool:
+        if not self.enabled:
+            return False
+
         parsed_text = self.parse_text(text)
         if parsed_text:
             action, *parameters = parsed_text
