@@ -68,8 +68,6 @@ class MouseMoveRequest(BaseRequest):
         self.step_sleep_time = None
         self.steps = None
 
-        self._iter = None
-
     def setup(self) -> None:
         self.from_position = pyautogui.position()
         distance = math.dist(self.from_position, self.to_position)
@@ -91,7 +89,7 @@ class MouseMoveRequest(BaseRequest):
             for i in range(n_steps)
         ]
 
-        if self.steps[-1] != (self.to_position.x, self.to_position.y):
+        if len(self.steps) == 0 or self.steps[-1] != (self.to_position.x, self.to_position.y):
             self.steps.append((self.to_position.x, self.to_position.y))
 
     @staticmethod
