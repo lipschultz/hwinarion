@@ -91,13 +91,13 @@ class TestMouseAction:
     @pytest.mark.parametrize(
         "input_text, expected_button, expected_n_clicks",
         [
-            ("click", "left", 1),
+            ("mouse click", "left", 1),
             ("left-mouse click", "left", 1),
             ("left mouse click", "left", 1),
-            ("double click", "left", 2),
+            ("double mouse click", "left", 2),
             ("double left-mouse click", "left", 2),
             ("double left mouse click", "left", 2),
-            ("triple click", "left", 3),
+            ("triple mouse click", "left", 3),
             ("triple left-mouse click", "left", 3),
             ("triple left mouse click", "left", 3),
             ("right-mouse click", "right", 1),
