@@ -4,35 +4,14 @@ isort:skip_file
 
 import math
 import multiprocessing
-import platform
 import queue
 import re
-import sys
 from typing import Callable, Iterator, List, Tuple, Union, Optional
 
 from loguru import logger
 
 from hwinarion.dispatcher import BaseAction
-
-# pyautogui.moveTo is too slow, so instead of using the public function, using the lower-level platform module which is
-# fast enough.
-if sys.platform.startswith("java"):
-    # from . import _pyautogui_java as pyautogui_module
-    raise NotImplementedError("Jython is not yet supported by PyAutoGUI.")
-if sys.platform == "darwin":
-    from pyautogui import _pyautogui_osx as pyautogui_module
-elif sys.platform == "win32":
-    from pyautogui import _pyautogui_win as pyautogui_module
-elif platform.system() == "Linux":
-    import Xlib.threaded  # pylint: disable=unused-import
-    from pyautogui import _pyautogui_x11 as pyautogui_module  # pylint: disable=ungrouped-imports
-else:
-    raise NotImplementedError(f"Your platform {platform.system()} is not supported by PyAutoGUI.")
-
-
-# This needs to be imported after Xlib.threaded in Linux, so it's after the imports above
-import pyautogui  # pylint: disable=wrong-import-position,wrong-import-order
-
+from hwinarion.screen.pyautogui_wrapper import pyautogui_module, pyautogui
 
 PositionType = Union[Tuple[int, int], pyautogui.Point]
 VelocityType = Union[float, int]
