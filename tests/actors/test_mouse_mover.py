@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from hwinarion.actors.mouse_mover import MouseAction
@@ -94,6 +96,9 @@ class TestMouseAction:
             ("mouse click", "left", 1),
             ("left-mouse click", "left", 1),
             ("left mouse click", "left", 1),
+            ("single mouse click", "left", 1),
+            ("single left-mouse click", "left", 1),
+            ("single left mouse click", "left", 1),
             ("double mouse click", "left", 2),
             ("double left-mouse click", "left", 2),
             ("double left mouse click", "left", 2),
@@ -102,12 +107,16 @@ class TestMouseAction:
             ("triple left mouse click", "left", 3),
             ("right-mouse click", "right", 1),
             ("right mouse click", "right", 1),
+            ("single right-mouse click", "right", 1),
+            ("single right mouse click", "right", 1),
             ("double right-mouse click", "right", 2),
             ("double right mouse click", "right", 2),
             ("triple right-mouse click", "right", 3),
             ("triple right mouse click", "right", 3),
             ("middle-mouse click", "middle", 1),
             ("middle mouse click", "middle", 1),
+            ("single middle-mouse click", "middle", 1),
+            ("single middle mouse click", "middle", 1),
             ("double middle-mouse click", "middle", 2),
             ("double middle mouse click", "middle", 2),
             ("triple middle-mouse click", "middle", 3),
@@ -140,3 +149,20 @@ class TestMouseAction:
         result = actor.parse_text(input_text)
 
         assert result is None
+
+    def test_act_returns_false_when_disabled(self):
+        actor = MouseAction()
+        actor.enabled = False
+
+        result = actor.act("any text")
+
+        assert result is False
+
+    def test_if_parsed_text_returns_none_then_act_takes_no_action(self):
+        actor = MouseAction()
+        actor.parse_text = mock.MagicMock(return_value=None)
+
+        result = actor.act("any text")
+
+        assert result is False
+        actor.parse_text.assert_called_once_with("any text")

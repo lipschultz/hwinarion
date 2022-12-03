@@ -150,9 +150,6 @@ class MouseDownRequest(MouseMoveRequest):
 
 
 class MouseStopRequest(BaseRequest):
-    def __init__(self):
-        super().__init__()
-
     def __iter__(self) -> Iterator[float]:
         return iter([])
 

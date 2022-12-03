@@ -55,20 +55,20 @@ class MouseAction(BaseAction):
             return ("stop",)
 
         click_parse = re.fullmatch(
-            r"(?P<n_clicks>double|triple)?\s*(?:(?P<button>left|right|middle)[- ])?mouse\s*click",
+            r"(?P<n_clicks>single|double|triple)?\s*(?:(?P<button>left|right|middle)[- ])?mouse\s*click",
             text,
             flags=re.IGNORECASE,
         )
         if click_parse:
             button = click_parse["button"].lower() if click_parse["button"] else "left"
-            if click_parse["n_clicks"] is None:
+            if click_parse["n_clicks"] in (None, "single"):
                 n_clicks = 1
             elif click_parse["n_clicks"] == "double":
                 n_clicks = 2
             elif click_parse["n_clicks"] == "triple":
                 n_clicks = 3
             else:
-                n_clicks = 1
+                raise ValueError(f"Unrecognized number of clicks: {click_parse['n_clicks']}")
             return "click", button, n_clicks
 
         return None
