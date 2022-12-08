@@ -98,7 +98,7 @@ class BaseListener:
         Determine the state of the listener from the ``latest_frame`` that's recorded and all the frames that have been
         recorded (except for the ``latest_frame``).
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def _pre_process_individual_audio_sample(self, audio: AudioSample) -> AudioSample:
         """
