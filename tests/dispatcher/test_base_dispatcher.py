@@ -199,6 +199,29 @@ class TestBaseDispatcherListener:
         speech_to_text.transcribe_audio.assert_has_calls([call(1), call(7), call(8)])
         assert speech_to_text.transcribe_audio.call_count == 3
 
+    def test_switching_speech_to_text_switches_what_is_used_by_get_transcribed_text(self):
+        # Arrange
+        listener = self.create_background_listener(1, 2, 3)
+
+        first_speech_to_text = mock.MagicMock()
+        first_speech_to_text.transcribe_audio = mock.MagicMock(return_value="one")
+
+        second_speech_to_text = mock.MagicMock()
+        second_speech_to_text.transcribe_audio = mock.MagicMock(side_effect=["two", "three"])
+
+        subject = BaseDispatcher(listener, first_speech_to_text)
+        subject.start_listening()
+        actual_transcriptions = subject._get_transcribed_text()
+        next(actual_transcriptions)
+
+        # Act
+        subject.speech_to_text = second_speech_to_text
+
+        # Assert
+        assert list(actual_transcriptions) == ["two", "three"]
+        first_speech_to_text.transcribe_audio.assert_called_once_with(1)
+        second_speech_to_text.transcribe_audio.assert_has_calls([call(2), call(3)])
+
     def test_listener_started_and_stopped_when_run_called(self):
         subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
         subject.start_listening = mock.MagicMock()
