@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import call
 
 from hwinarion.dispatcher import BaseAction, BaseDispatcher
+from hwinarion.listeners.base import BackgroundListener
 
 
 class TestBaseDispatcherRegisteringAction:
@@ -113,9 +114,16 @@ class TestBaseDispatcherListener:
 
         return listener
 
+    @classmethod
+    def create_background_listener(cls, *return_values, raise_eof_at_end=True):
+        listener = mock.MagicMock()
+        last_side_effect = (EOFError(),) if raise_eof_at_end else ()
+        listener.listen = mock.MagicMock(side_effect=return_values + last_side_effect)
+        return BackgroundListener(listener, {})
+
     def test_getting_transcribed_text(self):
         # Arrange
-        listener = self.create_mock_listener(1)
+        listener = self.create_background_listener(1)
 
         speech_to_text = mock.MagicMock()
         speech_to_text.transcribe_audio = mock.MagicMock(return_value="one")
@@ -147,3 +155,46 @@ class TestBaseDispatcherListener:
         assert list(actual_transcriptions) == ["one", "two", "three", "four"]
         speech_to_text.transcribe_audio.assert_has_calls([call(1), call(2), call(3), call(4)])
         assert speech_to_text.transcribe_audio.call_count == 4
+
+    def test_empty_text_not_yielded(self):
+        # Arrange
+        listener = self.create_background_listener(1, 2, 3)
+
+        speech_to_text = mock.MagicMock()
+        speech_to_text.transcribe_audio = mock.MagicMock(side_effect=["one", "", "two"])
+
+        subject = BaseDispatcher(listener, speech_to_text)
+        subject.start_listening()
+
+        # Act
+        actual_transcriptions = subject._get_transcribed_text()
+
+        # Assert
+        assert list(actual_transcriptions) == ["one", "two"]
+        speech_to_text.transcribe_audio.assert_has_calls([call(1), call(2), call(3)])
+        assert speech_to_text.transcribe_audio.call_count == 3
+
+    def test_new_listener_used_when_new_listener_set_and_old_listener_not_empty(self):
+        # Arrange
+        first_listener = self.create_background_listener(1, 2, 3, 4, raise_eof_at_end=False)
+        second_listener = self.create_background_listener(7, 8)
+
+        speech_to_text = mock.MagicMock()
+        speech_to_text.transcribe_audio = mock.MagicMock(side_effect=("one", "two", "three", "four"))
+
+        subject = BaseDispatcher(first_listener, speech_to_text)
+        subject.start_listening()
+
+        transcriber = subject._get_transcribed_text()
+        next(transcriber)
+
+        # Act
+        subject.set_listener(second_listener, start_listening=True)
+
+        # Act
+        actual_transcriptions = list(transcriber)
+
+        # Assert
+        assert actual_transcriptions == ["two", "three"]
+        speech_to_text.transcribe_audio.assert_has_calls([call(1), call(7), call(8)])
+        assert speech_to_text.transcribe_audio.call_count == 3

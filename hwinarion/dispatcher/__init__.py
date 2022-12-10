@@ -35,9 +35,11 @@ class BaseDispatcher:
     def register_action(self, action: BaseAction) -> None:
         self.actions.append(action)
 
-    def set_listener(self, listener: BackgroundListener) -> None:
+    def set_listener(self, listener: BackgroundListener, start_listening=False) -> None:
         self.stop_listening()
         self.listener = listener
+        if start_listening:
+            self.listener.start()
 
     def start_listening(self) -> None:
         self.stop_listening()
@@ -51,7 +53,7 @@ class BaseDispatcher:
         logger.debug("Running transcriber")
         while self.listener.is_listening or not self.listener.empty():
             audio = self.listener.get()
-            logger.debug("Heard audio:", audio)
+            logger.debug(f"Heard audio: {audio}")
             transcribed_text = self.speech_to_text.transcribe_audio(audio)
             if len(transcribed_text) > 0:
                 yield transcribed_text

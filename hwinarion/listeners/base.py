@@ -81,8 +81,11 @@ class BackgroundListener:
             except EOFError:
                 logger.info("Background listener reached end of file")
                 break
-            except Exception:
-                logger.exception("Background listener received exception")
+            except StopIteration:
+                logger.info("Background listener received StopIteration")
+                break
+            except Exception as ex:
+                logger.exception(f"Background listener received exception: {type(ex)}")
                 break
 
     def get(self) -> AudioSample:
