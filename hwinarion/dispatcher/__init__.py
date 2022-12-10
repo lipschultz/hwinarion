@@ -1,8 +1,8 @@
-from typing import Generator, List, Optional
+from typing import Generator, List
 
 from loguru import logger
 
-from hwinarion.listeners.base import BackgroundListener, BaseListener
+from hwinarion.listeners.base import BackgroundListener
 from hwinarion.speech_to_text import BaseSpeechToText
 
 
@@ -48,10 +48,8 @@ class BaseDispatcher:
             self.listener.stop()
 
     def _get_transcribed_text(self) -> Generator[str, None, None]:
-        self.start_listening()
-
         logger.debug("Running transcriber")
-        while self.listener.is_listening or not self.listener.queue.empty():
+        while self.listener.is_listening or not self.listener.empty():
             audio = self.listener.get()
             logger.debug("Heard audio:", audio)
             transcribed_text = self.speech_to_text.transcribe_audio(audio)
@@ -59,6 +57,8 @@ class BaseDispatcher:
                 yield transcribed_text
 
     def run(self) -> None:
+        self.start_listening()
+
         try:
             for text in self._get_transcribed_text():
                 logger.debug(f"Got text (len={len(text)}): {text}")

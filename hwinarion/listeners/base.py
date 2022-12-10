@@ -88,6 +88,9 @@ class BackgroundListener:
     def get(self) -> AudioSample:
         return self.queue.get()
 
+    def empty(self) -> bool:
+        return self.queue.empty()
+
 
 class BaseListener:
     def __init__(self, source: BaseAudioSource):

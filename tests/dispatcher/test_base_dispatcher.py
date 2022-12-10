@@ -1,4 +1,6 @@
+import queue
 from unittest import mock
+from unittest.mock import call
 
 from hwinarion.dispatcher import BaseAction, BaseDispatcher
 
@@ -89,3 +91,59 @@ class TestBaseDispatcherListener:
 
         first_listener.stop.assert_called_once_with()
         assert subject.listener is second_listener
+
+    @classmethod
+    def create_mock_listener(cls, *return_values, n_listening_true=None):
+        listener = mock.MagicMock()
+
+        if n_listening_true is None:
+            listening = [True] * len(return_values)
+        else:
+            listening = [True] * n_listening_true
+            if len(return_values) > n_listening_true:
+                listening += [False] * (len(return_values) - n_listening_true)
+        is_listening_mock = mock.PropertyMock(side_effect=[False] + listening + [False])
+        type(listener).is_listening = is_listening_mock
+
+        content_queue = queue.SimpleQueue()
+        for value in return_values:
+            content_queue.put(value)
+        listener.empty = content_queue.empty
+        listener.get = content_queue.get
+
+        return listener
+
+    def test_getting_transcribed_text(self):
+        # Arrange
+        listener = self.create_mock_listener(1)
+
+        speech_to_text = mock.MagicMock()
+        speech_to_text.transcribe_audio = mock.MagicMock(return_value="one")
+
+        subject = BaseDispatcher(listener, speech_to_text)
+        subject.start_listening()
+
+        # Act
+        actual_transcriptions = subject._get_transcribed_text()
+
+        # Assert
+        assert list(actual_transcriptions) == ["one"]
+        speech_to_text.transcribe_audio.assert_called_once_with(1)
+
+    def test_run_continues_until_speech_to_text_queue_is_empty(self):
+        # Arrange
+        listener = self.create_mock_listener(1, 2, 3, 4, n_listening_true=2)
+
+        speech_to_text = mock.MagicMock()
+        speech_to_text.transcribe_audio = mock.MagicMock(side_effect=("one", "two", "three", "four"))
+
+        subject = BaseDispatcher(listener, speech_to_text)
+        subject.start_listening()
+
+        # Act
+        actual_transcriptions = subject._get_transcribed_text()
+
+        # Assert
+        assert list(actual_transcriptions) == ["one", "two", "three", "four"]
+        speech_to_text.transcribe_audio.assert_has_calls([call(1), call(2), call(3), call(4)])
+        assert speech_to_text.transcribe_audio.call_count == 4
