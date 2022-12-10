@@ -198,3 +198,131 @@ class TestBaseDispatcherListener:
         assert actual_transcriptions == ["two", "three"]
         speech_to_text.transcribe_audio.assert_has_calls([call(1), call(7), call(8)])
         assert speech_to_text.transcribe_audio.call_count == 3
+
+    def test_listener_started_and_stopped_when_run_called(self):
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from []
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        subject.run()
+
+        subject.start_listening.assert_called_once_with()
+        subject.stop_listening.assert_called_once_with()
+
+    def test_action_called_on_text(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["first"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action = BaseAction("Action with match")
+        action.act = mock.MagicMock(return_value=True)
+        subject.register_action(action)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action.act.assert_called_once_with("first")
+
+    def test_run_loops_over_transcribed_text(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["first", "second", "third"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action = BaseAction("Action with match")
+        action.act = mock.MagicMock(return_value=True)
+        subject.register_action(action)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action.act.assert_has_calls([call("first"), call("second"), call("third")])
+
+    def test_unconsumed_text_does_not_crash(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["first"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action = BaseAction("Action with match")
+        action.act = mock.MagicMock(return_value=False)
+        subject.register_action(action)
+
+        # Act and Assert
+        subject.run()
+        action.act.assert_called_once_with("first")
+
+    def test_actions_called_until_match_found(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["first"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_no_match = BaseAction("Action without match")
+        action_no_match.act = mock.MagicMock(return_value=False)
+        subject.register_action(action_no_match)
+
+        action_match = BaseAction("Action with match")
+        action_match.act = mock.MagicMock(return_value=True)
+        subject.register_action(action_match)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_no_match.act.assert_called_once_with("first")
+        action_match.act.assert_called_once_with("first")
+
+    def test_subsequent_actions_after_match_not_called(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["first"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_match = BaseAction("Action with match")
+        action_match.act = mock.MagicMock(return_value=True)
+        subject.register_action(action_match)
+
+        action_no_match = BaseAction("Action without match")
+        action_no_match.act = mock.MagicMock(return_value=False)
+        subject.register_action(action_no_match)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_match.act.assert_called_once_with("first")
+        action_no_match.act.assert_not_called()
