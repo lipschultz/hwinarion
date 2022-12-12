@@ -90,6 +90,8 @@ class VoskSpeechToText(BaseSpeechToText):
         """
         Restrict the model to only use the provided vocabulary.
 
+        Duplicate terms in the vocabulary are removed.
+
         If `include_unrecognized_token` is True (default), then include the "unrecognized" token (`[unk]')
         """
         vocabulary = set(vocabulary)
