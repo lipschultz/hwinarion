@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from hwinarion.actors.mouse_mover import MouseAction
+from hwinarion.dispatcher import ActResult
 
 
 class TestMouseAction:
@@ -156,7 +157,7 @@ class TestMouseAction:
 
         result = actor.act("any text")
 
-        assert result is False
+        assert result is ActResult.TEXT_NOT_PROCESSED
 
     def test_if_parsed_text_returns_none_then_act_takes_no_action(self):
         actor = MouseAction()
@@ -164,5 +165,5 @@ class TestMouseAction:
 
         result = actor.act("any text")
 
-        assert result is False
+        assert result is ActResult.TEXT_NOT_PROCESSED
         actor.parse_text.assert_called_once_with("any text")

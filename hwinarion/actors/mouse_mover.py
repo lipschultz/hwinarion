@@ -5,7 +5,7 @@ isort:skip_file
 import re
 from typing import List, Tuple, Optional
 
-from hwinarion.dispatcher import BaseAction
+from hwinarion.dispatcher import BaseAction, ActResult
 from hwinarion.screen.pyautogui_wrapper import InterruptibleScreenInteractor
 
 
@@ -73,9 +73,9 @@ class MouseAction(BaseAction):
 
         return None
 
-    def act(self, text: str) -> bool:
+    def act(self, text: str) -> ActResult:
         if not self.enabled:
-            return False
+            return ActResult.TEXT_NOT_PROCESSED
 
         parsed_text = self.parse_text(text)
         if parsed_text:
@@ -83,7 +83,7 @@ class MouseAction(BaseAction):
 
             if action == "stop":
                 self.mouse_mover.stop_moving()
-                return True
+                return ActResult.TEXT_PROCESSED
 
             if action == "move":
                 direction, speed = parameters
@@ -100,11 +100,11 @@ class MouseAction(BaseAction):
                     raise KeyError(f"Unrecognized direction: {direction}")
 
                 move_function(speed)
-                return True
+                return ActResult.TEXT_PROCESSED
 
             if action == "click":
                 button, n_clicks = parameters
                 self.mouse_mover.click(button, n_clicks)
-                return True
+                return ActResult.TEXT_PROCESSED
 
-        return False
+        return ActResult.TEXT_NOT_PROCESSED

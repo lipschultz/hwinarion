@@ -1,9 +1,16 @@
+from enum import Enum, auto
 from typing import Generator, List
 
 from loguru import logger
 
 from hwinarion.listeners.base import BackgroundListener
 from hwinarion.speech_to_text import BaseSpeechToText
+
+
+class ActResult(Enum):
+    TEXT_PROCESSED = auto()
+    TEXT_NOT_PROCESSED = auto()
+    PROCESS_FUTURE_TEXT = auto()
 
 
 class BaseAction:
@@ -19,9 +26,18 @@ class BaseAction:
         """
         raise NotImplementedError  # pragma: no cover
 
-    def act(self, text: str) -> bool:
+    def act(self, text: str) -> ActResult:
         """
         Return True if the action acted on the text, False otherwise.
+        Determine whether the action should act on the text and act if appropriate.
+
+        Returns ``ActResult.TEXT_PROCESSED`` if the action acted on the text and no further processing by other actions
+        should take place.
+
+        Returns ``ActResult.TEXT_NOT_PROCESSED`` if another action should act on the text.
+
+        Returns ``ActResult.PROCESS_FUTURE_TEXT`` if the action acted on the text, no further processing by other
+        actions should take place, and this action should be the first to receive the next text.
         """
         raise NotImplementedError  # pragma: no cover
 
@@ -64,11 +80,9 @@ class BaseDispatcher:
         try:
             for text in self._get_transcribed_text():
                 logger.debug(f"Got text (len={len(text)}): {text}")
-                if text.lower() == "stop":
-                    logger.info("Stopping dispatch")
-                    break
                 for action in self.actions:
-                    if action.act(text):
+                    result = action.act(text)
+                    if result == ActResult.TEXT_PROCESSED:
                         logger.info(f"{action} consumed {text}")
                         break
                 else:

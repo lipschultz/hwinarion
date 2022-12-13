@@ -2,7 +2,7 @@ import queue
 from unittest import mock
 from unittest.mock import call
 
-from hwinarion.dispatcher import BaseAction, BaseDispatcher
+from hwinarion.dispatcher import ActResult, BaseAction, BaseDispatcher
 from hwinarion.listeners.base import BackgroundListener
 
 
@@ -249,7 +249,7 @@ class TestBaseDispatcherListener:
         subject._get_transcribed_text = get_transcribed_text
 
         action = BaseAction("Action with match")
-        action.act = mock.MagicMock(return_value=True)
+        action.act = mock.MagicMock(return_value=ActResult.TEXT_PROCESSED)
         subject.register_action(action)
 
         # Act
@@ -270,7 +270,7 @@ class TestBaseDispatcherListener:
         subject._get_transcribed_text = get_transcribed_text
 
         action = BaseAction("Action with match")
-        action.act = mock.MagicMock(return_value=True)
+        action.act = mock.MagicMock(return_value=ActResult.TEXT_PROCESSED)
         subject.register_action(action)
 
         # Act
@@ -291,7 +291,7 @@ class TestBaseDispatcherListener:
         subject._get_transcribed_text = get_transcribed_text
 
         action = BaseAction("Action with match")
-        action.act = mock.MagicMock(return_value=False)
+        action.act = mock.MagicMock(return_value=ActResult.TEXT_NOT_PROCESSED)
         subject.register_action(action)
 
         # Act and Assert
@@ -310,11 +310,11 @@ class TestBaseDispatcherListener:
         subject._get_transcribed_text = get_transcribed_text
 
         action_no_match = BaseAction("Action without match")
-        action_no_match.act = mock.MagicMock(return_value=False)
+        action_no_match.act = mock.MagicMock(return_value=ActResult.TEXT_NOT_PROCESSED)
         subject.register_action(action_no_match)
 
         action_match = BaseAction("Action with match")
-        action_match.act = mock.MagicMock(return_value=True)
+        action_match.act = mock.MagicMock(return_value=ActResult.TEXT_PROCESSED)
         subject.register_action(action_match)
 
         # Act
@@ -336,11 +336,11 @@ class TestBaseDispatcherListener:
         subject._get_transcribed_text = get_transcribed_text
 
         action_match = BaseAction("Action with match")
-        action_match.act = mock.MagicMock(return_value=True)
+        action_match.act = mock.MagicMock(return_value=ActResult.TEXT_PROCESSED)
         subject.register_action(action_match)
 
         action_no_match = BaseAction("Action without match")
-        action_no_match.act = mock.MagicMock(return_value=False)
+        action_no_match.act = mock.MagicMock(return_value=ActResult.TEXT_NOT_PROCESSED)
         subject.register_action(action_no_match)
 
         # Act
