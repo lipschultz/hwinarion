@@ -5,8 +5,7 @@ from typing import Iterable, Union
 from vosk import KaldiRecognizer, Model
 
 from hwinarion.audio.base import AudioSample
-from hwinarion.speech_to_text import BaseSpeechToText
-from hwinarion.speech_to_text.base import DetailedTranscript, DetailedTranscripts, TranscriptSegment
+from hwinarion.speech_to_text.base import BaseSpeechToText, DetailedTranscript, DetailedTranscripts, TranscriptSegment
 
 
 class VoskSpeechToText(BaseSpeechToText):

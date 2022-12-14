@@ -5,8 +5,7 @@ from stt import Model
 from stt.impl import CandidateTranscript
 
 from hwinarion.audio.base import AudioSample
-from hwinarion.speech_to_text import BaseSpeechToText
-from hwinarion.speech_to_text.base import DetailedTranscript, DetailedTranscripts, TranscriptSegment
+from hwinarion.speech_to_text.base import BaseSpeechToText, DetailedTranscript, DetailedTranscripts, TranscriptSegment
 
 
 class CoquiSpeechToText(BaseSpeechToText):

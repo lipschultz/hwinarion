@@ -5,8 +5,8 @@ from typing import Union
 from pocketsphinx import pocketsphinx
 
 from hwinarion.audio.base import AudioSample
-from hwinarion.speech_to_text import BaseSpeechToText
 from hwinarion.speech_to_text.base import (
+    BaseSpeechToText,
     DetailedTranscript,
     DetailedTranscripts,
     NoTranscriptionError,
