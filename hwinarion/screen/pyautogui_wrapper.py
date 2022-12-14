@@ -50,6 +50,22 @@ class BaseRequest:
         return next(self._iter)
 
 
+class RequestWithResponse(BaseRequest):
+    def __init__(self):
+        super().__init__()
+        self._result_queue = multiprocessing.SimpleQueue()
+
+    def _generate_result(self):
+        raise NotImplementedError
+
+    def __iter__(self) -> Iterator[float]:
+        self._result_queue.put(self._generate_result())
+        return iter([])
+
+    def get_result(self):
+        return self._result_queue.get()
+
+
 class MouseMoveRequest(BaseRequest):
     def __init__(self, velocity: Union[float, int]):
         super().__init__()
@@ -168,6 +184,11 @@ class MouseClickRequest(BaseRequest):
         return iter([])
 
 
+class MousePositionRequest(RequestWithResponse):
+    def _generate_result(self):
+        return pyautogui.position()
+
+
 """
 It may look like this class can be cleaned up and refactored to work better.  However, Xlib (a library that pyautogui
 uses for doing mouse/screen stuff on X11 doesn't work well in threaded or multiprocessing environments.  It only seems
@@ -280,8 +301,13 @@ class InterruptibleScreenInteractor:
     def move_down(self, velocity: float = SPEED_NORMAL) -> None:
         self.queue.put(MouseDownRequest(velocity))
 
-    def stop_moving(self):
+    def stop_moving(self) -> None:
         self.queue.put(MouseStopRequest())
 
-    def click(self, button: str, n_clicks: int):
+    def click(self, button: str, n_clicks: int) -> None:
         self.queue.put(MouseClickRequest(button, n_clicks))
+
+    def get_mouse_position(self) -> pyautogui.Point:
+        request = MousePositionRequest()
+        self.queue.put(request)
+        return request.get_result()
