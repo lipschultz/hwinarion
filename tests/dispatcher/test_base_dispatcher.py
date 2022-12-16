@@ -222,6 +222,8 @@ class TestBaseDispatcherListener:
         first_speech_to_text.transcribe_audio.assert_called_once_with(1)
         second_speech_to_text.transcribe_audio.assert_has_calls([call(2), call(3)])
 
+
+class TestBaseDispatcherRun:
     def test_listener_started_and_stopped_when_run_called(self):
         subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
         subject.start_listening = mock.MagicMock()
@@ -349,3 +351,128 @@ class TestBaseDispatcherListener:
         # Assert
         action_match.act.assert_called_once_with("first")
         action_no_match.act.assert_not_called()
+
+    def test_action_called_first_when_it_previously_requested_to_process_text_first(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["to be captured", "while captured"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_no_capture = BaseAction("Action that won't capture")
+        action_no_capture.act = mock.MagicMock(return_value=ActResult.TEXT_NOT_PROCESSED)
+        subject.register_action(action_no_capture)
+
+        action_match = BaseAction("Action will capture")
+        action_match.act = mock.MagicMock(side_effect=[ActResult.PROCESS_FUTURE_TEXT, ActResult.PROCESS_FUTURE_TEXT])
+        subject.register_action(action_match)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_no_capture.act.assert_called_once_with("to be captured")
+        action_match.act.assert_has_calls([call("to be captured"), call("while captured")])
+        assert action_match.act.call_count == 2
+
+    def test_action_to_consider_first_is_not_considered_first_after_returning_text_not_processed(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["to be captured", "while captured", "give up process", "last text"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_no_capture = BaseAction("Action that won't capture")
+        action_no_capture.act = mock.MagicMock(
+            side_effect=[ActResult.TEXT_NOT_PROCESSED, ActResult.TEXT_NOT_PROCESSED, ActResult.TEXT_PROCESSED]
+        )
+        subject.register_action(action_no_capture)
+
+        action_match = BaseAction("Action will capture")
+        action_match.act = mock.MagicMock(
+            side_effect=[ActResult.PROCESS_FUTURE_TEXT, ActResult.PROCESS_FUTURE_TEXT, ActResult.TEXT_NOT_PROCESSED]
+        )
+        subject.register_action(action_match)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_no_capture.act.assert_has_calls([call("to be captured"), call("give up process"), call("last text")])
+        assert action_match.act.call_count == 3
+        action_match.act.assert_has_calls([call("to be captured"), call("while captured"), call("give up process")])
+        assert action_match.act.call_count == 3
+
+    def test_action_to_consider_first_is_not_considered_first_after_returning_text_processed(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["to be captured", "while captured", "give up process", "last text"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_no_capture = BaseAction("1. Action that won't capture")
+        action_no_capture.act = mock.MagicMock(side_effect=[ActResult.TEXT_NOT_PROCESSED, ActResult.TEXT_PROCESSED])
+        subject.register_action(action_no_capture)
+
+        action_match = BaseAction("2. Action will capture")
+        action_match.act = mock.MagicMock(
+            side_effect=[ActResult.PROCESS_FUTURE_TEXT, ActResult.PROCESS_FUTURE_TEXT, ActResult.TEXT_PROCESSED]
+        )
+        subject.register_action(action_match)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_no_capture.act.assert_has_calls([call("to be captured"), call("last text")])
+        assert action_match.act.call_count == 3
+        action_match.act.assert_has_calls([call("to be captured"), call("while captured"), call("give up process")])
+        assert action_match.act.call_count == 3
+
+    def test_action_can_give_up_capture_and_another_action_can_take_it_in_the_same_text(self):
+        # Arrange
+        subject = BaseDispatcher(mock.MagicMock(), mock.MagicMock())
+        subject.start_listening = mock.MagicMock()
+        subject.stop_listening = mock.MagicMock()
+
+        def get_transcribed_text():
+            yield from ["to be captured", "while captured", "switch to second action capture", "while second captured"]
+
+        subject._get_transcribed_text = get_transcribed_text
+
+        action_second_capture = BaseAction("Action that'll capture second")
+        action_second_capture.act = mock.MagicMock(
+            side_effect=[ActResult.TEXT_NOT_PROCESSED, ActResult.PROCESS_FUTURE_TEXT, ActResult.TEXT_PROCESSED]
+        )
+        subject.register_action(action_second_capture)
+
+        action_first_capture = BaseAction("Action that'll capture first")
+        action_first_capture.act = mock.MagicMock(
+            side_effect=[ActResult.PROCESS_FUTURE_TEXT, ActResult.PROCESS_FUTURE_TEXT, ActResult.TEXT_NOT_PROCESSED]
+        )
+        subject.register_action(action_first_capture)
+
+        # Act
+        subject.run()
+
+        # Assert
+        action_second_capture.act.assert_has_calls(
+            [call("to be captured"), call("switch to second action capture"), call("while second captured")]
+        )
+        assert action_first_capture.act.call_count == 3
+        action_first_capture.act.assert_has_calls(
+            [call("to be captured"), call("while captured"), call("switch to second action capture")]
+        )
+        assert action_first_capture.act.call_count == 3

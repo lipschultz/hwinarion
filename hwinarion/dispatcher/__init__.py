@@ -1,10 +1,11 @@
+from collections.abc import Container
 from enum import Enum, auto
-from typing import Generator, List
+from typing import Generator, List, Optional, Tuple
 
 from loguru import logger
 
 from hwinarion.listeners.base import BackgroundListener
-from hwinarion.speech_to_text import BaseSpeechToText
+from hwinarion.speech_to_text.base import BaseSpeechToText
 
 
 class ActResult(Enum):
@@ -17,6 +18,9 @@ class BaseAction:
     def __init__(self, name: str, enabled: bool = True):
         self.name = name
         self.enabled = enabled
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r})"
 
     @property
     def recognized_words(self) -> List[str]:
@@ -74,18 +78,55 @@ class BaseDispatcher:
             if len(transcribed_text) > 0:
                 yield transcribed_text
 
+    def _act_on_text(
+        self, text: str, skip_actions: Optional[Container[BaseAction]] = None
+    ) -> Tuple[Optional[BaseAction], ActResult]:
+        """
+        Loops over the actions (skipping any listed in ``skip_actions`` until one acts on the provided text.  Returns
+        a tuple of the action that acted on the text and what its ActResult was.  If no action acted on the text, then
+        returns ``(None, ActResult.TEXT_NOT_PROCESSED)``
+        """
+        skip_actions = skip_actions or ()
+
+        for action in self.actions:
+            if action in skip_actions:
+                continue
+
+            logger.info(f"considering action: {action}")
+            result = action.act(text)
+            if result == ActResult.TEXT_PROCESSED:
+                logger.info(f"{action} consumed {text!r}")
+                return action, result
+            elif result == ActResult.PROCESS_FUTURE_TEXT:
+                logger.info(f"{action} consumed {text!r} and will process future text")
+                return action, result
+
+        # No action consumed the text
+        logger.info(f"Unconsumed text: {text}")
+        return None, ActResult.TEXT_NOT_PROCESSED
+
     def run(self) -> None:
         self.start_listening()
 
         try:
+            action_to_consider_first = None  # type: Optional[BaseAction]
             for text in self._get_transcribed_text():
                 logger.debug(f"Got text (len={len(text)}): {text}")
-                for action in self.actions:
-                    result = action.act(text)
-                    if result == ActResult.TEXT_PROCESSED:
-                        logger.info(f"{action} consumed {text}")
-                        break
+
+                if action_to_consider_first is not None:
+                    logger.debug(f"Trying first: {action_to_consider_first}")
+                    action_result = action_to_consider_first.act(text)
+                    if action_result == ActResult.TEXT_PROCESSED:
+                        action_to_consider_first = None
+                    elif action_result == ActResult.TEXT_NOT_PROCESSED:
+                        acted_action, action_result = self._act_on_text(text, [action_to_consider_first])
+                        action_to_consider_first = acted_action
                 else:
+                    acted_action, action_result = self._act_on_text(text)
+                    if action_result == ActResult.PROCESS_FUTURE_TEXT:
+                        action_to_consider_first = acted_action
+
+                if action_result == ActResult.TEXT_NOT_PROCESSED:
                     # No action consumed the text
                     logger.info(f"Unconsumed text: {text}")
         finally:
