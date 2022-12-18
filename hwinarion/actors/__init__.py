@@ -40,6 +40,9 @@ class StringLiteralActor(BaseAction):
         return list(words)
 
     def act(self, text: str, *, get_recording_data: bool = False) -> ActionResult:
+        if not self.enabled:
+            return ActionResult(ActProcessResult.TEXT_NOT_PROCESSED)
+
         text = self.transform_trigger(text)
         action = self.string_action_mapper.get(text)
         if action is not None:
