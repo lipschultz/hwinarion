@@ -1,8 +1,8 @@
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Union
 
-from hwinarion.dispatcher import ActResult, BaseAction
+from hwinarion.dispatcher import ActionResult, ActProcessResult, BaseAction
 
-ActionFunctionType = Callable[[str], ActResult]
+ActionFunctionType = Callable[[str], Union[ActProcessResult, ActionResult]]
 
 
 class StringLiteralActor(BaseAction):
@@ -39,9 +39,12 @@ class StringLiteralActor(BaseAction):
         words.update(*(trigger.split() for trigger in self.triggers()))
         return list(words)
 
-    def act(self, text: str) -> ActResult:
+    def act(self, text: str, *, get_recording_data: bool = False) -> ActionResult:
         text = self.transform_trigger(text)
         action = self.string_action_mapper.get(text)
         if action is not None:
-            return action(text)
-        return ActResult.TEXT_NOT_PROCESSED
+            result = action(text, get_recording_data=get_recording_data)
+            if isinstance(result, ActProcessResult):
+                result = ActionResult(result)
+            return result
+        return ActionResult(ActProcessResult.TEXT_NOT_PROCESSED)

@@ -1,5 +1,5 @@
 from hwinarion.actors import StringLiteralActor
-from hwinarion.dispatcher import ActResult
+from hwinarion.dispatcher import ActProcessResult
 from hwinarion.speech_to_text.base import BaseSpeechToText
 
 
@@ -16,18 +16,18 @@ class HwinArionAction(StringLiteralActor):
         self.add_action("wake-up", self.switch_from_wakeword_detection)
         self.add_action("wakeup", self.switch_from_wakeword_detection)
 
-    def stop_dispatcher(self, text) -> ActResult:
+    def stop_dispatcher(self, text, *, get_recording_data: bool = False) -> ActProcessResult:
         self._dispatcher.stop_listening()
-        return ActResult.TEXT_PROCESSED
+        return ActProcessResult.TEXT_PROCESSED
 
-    def switch_to_wakeword_detection(self, text) -> ActResult:
+    def switch_to_wakeword_detection(self, text, *, get_recording_data: bool = False) -> ActProcessResult:
         self._normal_speech_to_text = self._dispatcher.speech_to_text
         self._dispatcher.speech_to_text = self._wakeword_speech_to_text
-        return ActResult.TEXT_PROCESSED
+        return ActProcessResult.TEXT_PROCESSED
 
-    def switch_from_wakeword_detection(self, text) -> ActResult:
+    def switch_from_wakeword_detection(self, text, *, get_recording_data: bool = False) -> ActProcessResult:
         self._dispatcher.speech_to_text = self._normal_speech_to_text
-        return ActResult.TEXT_PROCESSED
+        return ActProcessResult.TEXT_PROCESSED
 
     def transform_trigger(self, trigger: str) -> str:
         return trigger.lower()
