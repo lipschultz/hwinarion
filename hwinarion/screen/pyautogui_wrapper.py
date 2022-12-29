@@ -1,3 +1,7 @@
+"""
+isort:skip_file
+"""
+
 # pylint: disable=unused-import
 import math
 import multiprocessing
@@ -7,6 +11,7 @@ import sys
 from typing import Callable, Iterator, Tuple, Union
 
 from loguru import logger
+from PIL import Image
 
 # pyautogui.moveTo is too slow, so instead of using the public function, using the lower-level platform module which is
 # fast enough.
@@ -311,3 +316,6 @@ class InterruptibleScreenInteractor:
         request = MousePositionRequest()
         self.queue.put(request)
         return request.get_result()
+
+    def get_screenshot(self) -> Image.Image:
+        return pyautogui.screenshot()

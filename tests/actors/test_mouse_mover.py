@@ -1,6 +1,9 @@
 from unittest import mock
 
+import numpy as np
+import pyautogui
 import pytest
+from PIL import Image
 
 from hwinarion.actors.mouse_mover import MouseAction
 from hwinarion.dispatcher import ActionResult, ActProcessResult
@@ -169,3 +172,79 @@ class TestMouseAction:
         assert isinstance(result, ActionResult)
         assert result.process_result is ActProcessResult.TEXT_NOT_PROCESSED
         actor.parse_text.assert_called_once_with("any text")
+
+    def test_getting_recording_data_for_stop_action(self):
+        screen_interactor = mock.MagicMock()
+        screen_interactor.get_mouse_position = mock.MagicMock(return_value=pyautogui.Point(11, 29))
+        screenshot = Image.new("RGBA", (10, 10), "#00000000")
+        screen_interactor.get_screenshot = mock.MagicMock(return_value=screenshot)
+        screen_interactor.stop_moving = mock.MagicMock()
+        actor = MouseAction()
+        actor.screen_interactor.stop()
+        actor.screen_interactor = screen_interactor
+
+        result = actor.act("stop mouse", get_recording_data=True)
+
+        assert isinstance(result, ActionResult)
+        assert result.process_result is ActProcessResult.TEXT_PROCESSED
+        assert result.recording_data == {
+            "action": "stop",
+            "parameters": [],
+            "mouse_position": (11, 29),
+            "screen": np.asarray(screenshot.tobytes()),
+        }
+
+        screen_interactor.get_mouse_position.assert_called_once_with()
+        screen_interactor.get_screenshot.assert_called_once_with()
+        screen_interactor.stop_moving.assert_called_once_with()
+
+    def test_getting_recording_data_for_move_action(self):
+        screen_interactor = mock.MagicMock()
+        screen_interactor.get_mouse_position = mock.MagicMock(return_value=pyautogui.Point(11, 29))
+        screenshot = Image.new("RGBA", (10, 10), "#00000000")
+        screen_interactor.get_screenshot = mock.MagicMock(return_value=screenshot)
+        screen_interactor.move_down = mock.MagicMock()
+        actor = MouseAction()
+        actor.screen_interactor.stop()
+        actor.screen_interactor = screen_interactor
+
+        result = actor.act("move mouse down very fast", get_recording_data=True)
+
+        assert isinstance(result, ActionResult)
+        assert result.process_result is ActProcessResult.TEXT_PROCESSED
+        assert result.recording_data == {
+            "action": "move",
+            "parameters": ["down", "very fast"],
+            "mouse_position": (11, 29),
+            "screen": np.asarray(screenshot.tobytes()),
+            "speed": actor.speed_mapping["very fast"],
+        }
+
+        screen_interactor.get_mouse_position.assert_called_once_with()
+        screen_interactor.get_screenshot.assert_called_once_with()
+        screen_interactor.move_down.assert_called_once_with(actor.speed_mapping["very fast"])
+
+    def test_getting_recording_data_for_click_action(self):
+        screen_interactor = mock.MagicMock()
+        screen_interactor.get_mouse_position = mock.MagicMock(return_value=pyautogui.Point(11, 29))
+        screenshot = Image.new("RGBA", (10, 10), "#00000000")
+        screen_interactor.get_screenshot = mock.MagicMock(return_value=screenshot)
+        screen_interactor.click = mock.MagicMock()
+        actor = MouseAction()
+        actor.screen_interactor.stop()
+        actor.screen_interactor = screen_interactor
+
+        result = actor.act("triple right mouse click", get_recording_data=True)
+
+        assert isinstance(result, ActionResult)
+        assert result.process_result is ActProcessResult.TEXT_PROCESSED
+        assert result.recording_data == {
+            "action": "click",
+            "parameters": ["right", 3],
+            "mouse_position": (11, 29),
+            "screen": np.asarray(screenshot.tobytes()),
+        }
+
+        screen_interactor.get_mouse_position.assert_called_once_with()
+        screen_interactor.get_screenshot.assert_called_once_with()
+        screen_interactor.click.assert_called_once_with("right", 3)

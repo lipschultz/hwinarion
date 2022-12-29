@@ -1,19 +1,17 @@
-"""
-isort:skip_file
-"""
-
 import re
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
-from hwinarion.dispatcher import BaseAction, ActProcessResult, ActionResult
+import numpy as np
+
+from hwinarion.dispatcher import ActionResult, ActProcessResult, BaseAction
 from hwinarion.screen.pyautogui_wrapper import InterruptibleScreenInteractor
 
 
 class MouseAction(BaseAction):
     def __init__(self):
         super().__init__("mouse")
-        self.mouse_mover = InterruptibleScreenInteractor()
-        self.mouse_mover.start()
+        self.screen_interactor = InterruptibleScreenInteractor()
+        self.screen_interactor.start()
         self.speed_mapping = {
             "very slow": InterruptibleScreenInteractor.SPEED_VERY_SLOW,
             "slow": InterruptibleScreenInteractor.SPEED_SLOW,
@@ -39,7 +37,7 @@ class MouseAction(BaseAction):
             "triple",
             "middle",
             "click",
-        ]
+        ]  # pragma: no cover
 
     def parse_text(self, text: str) -> Optional[Tuple]:
         move_parse = re.fullmatch(
@@ -68,7 +66,7 @@ class MouseAction(BaseAction):
             elif click_parse["n_clicks"] == "triple":
                 n_clicks = 3
             else:
-                raise ValueError(f"Unrecognized number of clicks: {click_parse['n_clicks']}")
+                raise ValueError(f"Unrecognized number of clicks: {click_parse['n_clicks']}")  # pragma: no cover
             return "click", button, n_clicks
 
         return None
@@ -77,34 +75,42 @@ class MouseAction(BaseAction):
         if not self.enabled:
             return ActionResult(ActProcessResult.TEXT_NOT_PROCESSED)
 
+        recording_data = {}
+
         parsed_text = self.parse_text(text)
         if parsed_text:
             action, *parameters = parsed_text
+            recording_data["action"] = action
+            recording_data["parameters"] = parameters
+            if get_recording_data:
+                recording_data["mouse_position"] = tuple(self.screen_interactor.get_mouse_position())
+                recording_data["screen"] = np.asarray(self.screen_interactor.get_screenshot().tobytes())
 
             if action == "stop":
-                self.mouse_mover.stop_moving()
-                return ActionResult(ActProcessResult.TEXT_PROCESSED)
+                self.screen_interactor.stop_moving()
+                return ActionResult(ActProcessResult.TEXT_PROCESSED, recording_data)
 
             if action == "move":
                 direction, speed = parameters
                 speed = self.speed_mapping[speed]
+                recording_data["speed"] = speed
                 if direction == "left":
-                    move_function = self.mouse_mover.move_left
+                    move_function = self.screen_interactor.move_left
                 elif direction == "right":
-                    move_function = self.mouse_mover.move_right
+                    move_function = self.screen_interactor.move_right
                 elif direction == "down":
-                    move_function = self.mouse_mover.move_down
+                    move_function = self.screen_interactor.move_down
                 elif direction == "up":
-                    move_function = self.mouse_mover.move_up
+                    move_function = self.screen_interactor.move_up
                 else:
-                    raise KeyError(f"Unrecognized direction: {direction}")
+                    raise KeyError(f"Unrecognized direction: {direction}")  # pragma: no cover
 
                 move_function(speed)
-                return ActionResult(ActProcessResult.TEXT_PROCESSED)
+                return ActionResult(ActProcessResult.TEXT_PROCESSED, recording_data)
 
             if action == "click":
                 button, n_clicks = parameters
-                self.mouse_mover.click(button, n_clicks)
-                return ActionResult(ActProcessResult.TEXT_PROCESSED)
+                self.screen_interactor.click(button, n_clicks)
+                return ActionResult(ActProcessResult.TEXT_PROCESSED, recording_data)
 
         return ActionResult(ActProcessResult.TEXT_NOT_PROCESSED)
