@@ -33,5 +33,5 @@ repos:
     rev: v2.14.5
     hooks:
       - id: pylint
-        args: [--fail-under=5]
+        args: [--fail-under=7]
         verbose: true
