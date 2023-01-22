@@ -10,7 +10,10 @@ A speech recognition package for controlling your computer.
 Install [PortAudio 19](http://www.portaudio.com/).
 You may need to install the development libraries for PortAudio.
 
-Follow the instructions for [installing Pydub dependencies](https://github.com/jiaaro/pydub#dependencies).
+Follow the instruction for installing:
+
+* [Pydub dependencies](https://github.com/jiaaro/pydub#dependencies)
+* [Bree dependencies](https://github.com/lipschultz/bree#installation)
 
 ### Optional Dependencies
 

@@ -40,10 +40,10 @@ stt = "^1.4.0"
 
 
 [tool.poetry.group.whisper.dependencies]
-whisper = {git = "https://github.com/openai/whisper.git"}
 torch = "^1.12.1"
 ffmpeg-python = "^0.2.0"
 transformers = "^4.22.2"
+openai-whisper = "^20230117"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
