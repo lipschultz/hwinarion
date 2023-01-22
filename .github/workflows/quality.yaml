@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8"]  #, "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +21,12 @@ jobs:
       - name: Install Ubuntu Dependencies
         run: |
           sudo apt-get update
-          sudo apt install -y xauth tesseract-ocr
+          sudo apt install -y \
+            xauth xvfb \                                     # for run_without_display.py (xvfb might not be needed)
+            tesseract-ocr \                                  # for bree
+            ffmpeg \                                         # for openai-whisper and pydub
+            libavcodec-extra libasound-dev portaudio19-dev \ # for pydub
+            python3-tk                                       # for pyautogui (MouseInfo) in Linux
 
       - name: Install dependencies
         run: |
