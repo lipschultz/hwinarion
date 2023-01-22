@@ -1,7 +1,6 @@
-from collections.abc import Container
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generator, List, Optional, Tuple
+from typing import Any, Container, Generator, List, Optional, Tuple
 
 from loguru import logger
 
@@ -106,7 +105,7 @@ class BaseDispatcher:
             if result.process_result == ActProcessResult.TEXT_PROCESSED:
                 logger.info(f"{action} consumed {text!r}")
                 return action, result
-            elif result.process_result == ActProcessResult.PROCESS_FUTURE_TEXT:
+            if result.process_result == ActProcessResult.PROCESS_FUTURE_TEXT:
                 logger.info(f"{action} consumed {text!r} and will process future text")
                 return action, result
 

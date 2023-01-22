@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -21,12 +25,17 @@ jobs:
       - name: Install Ubuntu Dependencies
         run: |
           sudo apt-get update
-          sudo apt install -y \
-            xauth xvfb \                                     # for run_without_display.py (xvfb might not be needed)
-            tesseract-ocr \                                  # for bree
-            ffmpeg \                                         # for openai-whisper and pydub
-            libavcodec-extra libasound-dev portaudio19-dev \ # for pydub
-            python3-tk                                       # for pyautogui (MouseInfo) in Linux
+          sudo apt-get install -y \
+            xauth xvfb \
+            tesseract-ocr \
+            ffmpeg \
+            libavcodec-extra libasound-dev portaudio19-dev \
+            python3-tk
+          # xauth, xvfb                                    = run_without_display.py (xvfb might not be needed)
+          # tesseract-ocr                                  = bree
+          # ffmpeg                                         = openai-whisper and pydub
+          # libavcodec-extra libasound-dev portaudio19-dev = pydub
+          # python3-tk                                     = pyautogui (MouseInfo)
 
       - name: Install dependencies
         run: |
