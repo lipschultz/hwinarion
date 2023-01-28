@@ -1,6 +1,7 @@
+from donkey_ears.speech_to_text.base import BaseSpeechToText
+
 from hwinarion.actors import StringLiteralActor
 from hwinarion.dispatcher import ActProcessResult
-from hwinarion.speech_to_text.base import BaseSpeechToText
 
 
 class HwinArionAction(StringLiteralActor):

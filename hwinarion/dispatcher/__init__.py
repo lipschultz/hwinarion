@@ -2,10 +2,9 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Container, Generator, List, Optional, Tuple
 
+from donkey_ears.listeners.base import BackgroundListener
+from donkey_ears.speech_to_text.base import BaseSpeechToText
 from loguru import logger
-
-from hwinarion.listeners.base import BackgroundListener
-from hwinarion.speech_to_text.base import BaseSpeechToText
 
 
 class ActProcessResult(Enum):

@@ -2,8 +2,9 @@ import queue
 from unittest import mock
 from unittest.mock import call
 
+from donkey_ears.listeners.base import BackgroundListener
+
 from hwinarion.dispatcher import ActionResult, ActProcessResult, BaseAction, BaseDispatcher
-from hwinarion.listeners.base import BackgroundListener
 
 
 class TestBaseDispatcherRegisteringAction:
